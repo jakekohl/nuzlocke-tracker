@@ -8,6 +8,7 @@ import {
 
 export default withApi(async (req, res) => {
   const apiKey = req.headers['x-api-key']
+  console.log(apiKey)
 
   if (!apiKey) {
     return res.status(401).json({ message: 'Unauthorized' })
@@ -18,6 +19,7 @@ export default withApi(async (req, res) => {
   }
 
   const id = getRouteParam(req, 'id')
+  console.log(req.id)
   if (!id) {
     return res.status(400).json({ message: 'Run ID is required' })
   }

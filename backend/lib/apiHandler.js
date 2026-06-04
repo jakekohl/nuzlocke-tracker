@@ -1,4 +1,5 @@
 import connectToDatabase from './mongodb.js'
+import { withCors } from './cors.js'
 
 export function authCheck(apiKey) {
   let authorized = false
@@ -20,6 +21,10 @@ export function withDb(handler) {
       return res.status(500).json({ message: 'Internal server error' })
     }
   }
+}
+
+export function withApi(handler) {
+  return withCors(withDb(handler))
 }
 
 export async function getNextId(Model) {

@@ -1,7 +1,7 @@
-import { withDb, authCheck } from '../lib/apiHandler.js'
+import { withApi, authCheck } from '../lib/apiHandler.js'
 import { createRun } from '../lib/runService.js'
 
-export default withDb(async (req, res) => {
+export default withApi(async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' })
   }

@@ -1,11 +1,11 @@
-import { withDb, authCheck } from '../../lib/apiHandler.js'
+import { withApi, authCheck } from '../../lib/apiHandler.js'
 import {
   getRunById,
   updateRun,
   inactiveRun,
 } from '../../lib/runService.js'
 
-export default withDb(async (req, res) => {
+export default withApi(async (req, res) => {
   const { id } = req.query
   const apiKey = req.headers['x-api-key']
 

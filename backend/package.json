@@ -2,7 +2,8 @@
   "name": "nuzlocke-tracker-backend",
   "type": "module",
   "scripts": {
-    "dev:api": "vercel dev"
+    "dev:api": "vercel dev",
+    "test": "node --test lib/__tests__/**/*.test.js"
   },
   "dependencies": {
     "mongoose": "^9.6.3",

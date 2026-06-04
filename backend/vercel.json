@@ -1,4 +1,7 @@
 {
   "version": 2,
-  "devCommand": ""
+  "devCommand": "",
+  "env": {
+    "NODE_OPTIONS": "--disable-warning=DEP0169"
+  }
 }

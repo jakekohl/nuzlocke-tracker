@@ -10,12 +10,25 @@ const router = createRouter({
       path: '/',
       name: 'settings',
       component: SettingsView,
+      meta: {
+        title: 'settings'
+      }
     },
     {
       path: '/api',
       name: 'api-explorer',
       component: ApiExplorerView,
+      meta: {
+        title: 'API Explorer'
+      }
     },
+    {
+      path: '/:pathMatch(.*)*',
+      component: () => import('@/views/NotFound.vue'),
+      meta: {
+        title: 'Not Found',
+      },
+    }
   ],
 })
 

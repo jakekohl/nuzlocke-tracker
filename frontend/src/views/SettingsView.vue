@@ -39,19 +39,13 @@ async function saveApiKey() {
 
     <p v-if="saveMessage" class="save-message" role="status">{{ saveMessage }}</p>
 
-    <button type="button" class="btn btn--primary" @click="openModal">
+    <button type="button" class="btn btn--primary" data-test="api-button-set" @click="openModal">
       {{ apiKeyStore.isConfigured ? 'Update API Key' : 'Set API Key' }}
     </button>
 
     <dialog ref="dialogRef" class="modal" @cancel.prevent="closeModal" @close="onDialogClose">
       <form method="dialog" class="modal__form" @submit.prevent="saveApiKey">
         <h2>API Key</h2>
-        <p class="modal__hint">
-          Encrypted with AES-GCM before being written to this tab’s session storage.
-          It is decrypted in memory only when sending the <code>x-api-key</code> header.
-          This reduces casual exposure in DevTools but does not protect against malicious
-          scripts on this site.
-        </p>
 
         <label class="field" for="api-key-input">API Key</label>
         <input
@@ -61,12 +55,13 @@ async function saveApiKey() {
           name="apiKey"
           autocomplete="off"
           class="field__input"
+          data-test="api-key-input"
           placeholder="Enter your API key"
         />
 
         <div class="modal__actions">
-          <button type="button" class="btn" @click="closeModal">Cancel</button>
-          <button type="submit" class="btn btn--primary">Save</button>
+          <button type="button" data-test="api-button-cancel" class="btn" @click="closeModal">Cancel</button>
+          <button type="submit" data-test="api-button-save" class="btn btn--primary">Save</button>
         </div>
       </form>
     </dialog>

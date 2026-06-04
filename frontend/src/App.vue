@@ -1,11 +1,39 @@
 <script setup></script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <div class="app">
+    <nav class="app-nav">
+      <RouterLink to="/">Settings</RouterLink>
+      <RouterLink to="/api">API Explorer</RouterLink>
+    </nav>
+    <RouterView />
+  </div>
 </template>
 
-<style scoped></style>
+<style>
+body {
+  margin: 0;
+}
+
+.app-nav {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fff;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+.app-nav a {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.app-nav a.router-link-active {
+  text-decoration: underline;
+}
+</style>

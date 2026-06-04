@@ -3,10 +3,17 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
+import { useApiKeyStore } from './stores/apiKey'
 
-const app = createApp(App)
+async function bootstrap() {
+  const app = createApp(App)
+  const pinia = createPinia()
 
-app.use(createPinia())
-app.use(router)
+  app.use(pinia)
+  app.use(router)
 
-app.mount('#app')
+  await useApiKeyStore(pinia).hydrateFromStorage()
+  app.mount('#app')
+}
+
+bootstrap()

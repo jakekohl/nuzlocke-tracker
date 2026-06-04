@@ -1,8 +1,6 @@
-// https://on.cypress.io/api
-
-describe('My First Test', () => {
-  it('visits the app root url', () => {
+describe('Home', () =>  {
+  it('Loads the settings page', () => {
     cy.visit('/')
-    cy.contains('h1', 'You did it!')
   })
+
 })

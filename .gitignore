@@ -18,7 +18,8 @@ coverage
 .env
 
 # Editor directories and files
-.vscode/*
+.vscode
+.vercel
 !.vscode/extensions.json
 .idea
 *.suo

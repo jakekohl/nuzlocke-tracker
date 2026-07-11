@@ -30,7 +30,7 @@ export function applyCors(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, X-Api-Key, x-api-key',
+    'Content-Type, Authorization, X-Api-Key, x-api-key, X-Bootstrap-Secret, x-bootstrap-secret',
   )
   res.setHeader('Access-Control-Max-Age', '86400')
 }

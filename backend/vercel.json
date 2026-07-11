@@ -3,5 +3,11 @@
   "devCommand": "",
   "env": {
     "NODE_OPTIONS": "--disable-warning=DEP0169"
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    }
+  ]
 }

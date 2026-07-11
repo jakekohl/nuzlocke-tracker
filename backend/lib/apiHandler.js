@@ -1,16 +1,6 @@
 import connectToDatabase from './mongodb.js'
 import { withCors } from './cors.js'
 
-export function authCheck(apiKey) {
-  let authorized = false
-  if (!apiKey)
-    return authorized
-  else if (apiKey == process.env.API_KEY)
-    return authorized = true
-  else
-    return authorized;
-}
-
 export function withDb(handler) {
   return async (req, res) => {
     try {

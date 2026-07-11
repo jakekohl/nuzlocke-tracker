@@ -5,10 +5,9 @@
     <main>
       <nav class="app-nav">
         <RouterLink to="/" data-test="nav-link-settings">Settings</RouterLink>
-        <RouterLink to="/api" data-test="nav-link-api">API Explorer</RouterLink>
       </nav>
       <RouterView />
-  </main>
+    </main>
   </div>
 </template>
 

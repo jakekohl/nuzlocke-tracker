@@ -50,4 +50,21 @@ describe('ApiClient', () => {
       }),
     )
   })
+
+  it('GETs /api/auth/me with the access key', async () => {
+    const store = useApiKeyStore()
+    await store.setApiKey('nuz_testkey')
+
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ id: 1, email: 'a@b.co' }), { status: 200 }),
+    )
+
+    const client = new ApiClient('http://localhost:3000')
+    const result = await client.getMe()
+
+    expect(result.ok).toBe(true)
+    expect(result.data.email).toBe('a@b.co')
+    const headers = vi.mocked(fetch).mock.calls[0][1].headers
+    expect(headers.get('x-api-key')).toBe('nuz_testkey')
+  })
 })

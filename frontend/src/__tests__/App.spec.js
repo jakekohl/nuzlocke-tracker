@@ -33,6 +33,7 @@ describe('App', () => {
     })
 
     expect(wrapper.text()).toContain('Settings')
-    expect(wrapper.text()).toContain('Set API Key')
+    expect(wrapper.text()).toContain('Set Access Key')
+    expect(wrapper.text()).not.toContain('API Explorer')
   })
 })

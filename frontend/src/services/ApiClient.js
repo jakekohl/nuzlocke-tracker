@@ -95,6 +95,11 @@ export class ApiClient {
     return this.request('POST', path, { ...options, body })
   }
 
+  /** GET /api/auth/me — verify access key and return current user */
+  getMe() {
+    return this.get('/api/auth/me')
+  }
+
   /** POST /api/runs — create a new run */
   createRun(body) {
     return this.post('/api/runs', body)

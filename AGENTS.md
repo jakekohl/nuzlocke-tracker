@@ -17,11 +17,12 @@ See `README.md` for local setup and deployment notes.
 
 ## Backend: one serverless function
 
-Keep the API as **a single Vercel serverless function** (`backend/api/[...path].js`).
+Keep the API as **a single Vercel serverless function** (`backend/api/index.js`).
 
+- Nested paths are funneled in via `rewrites` in `backend/vercel.json` (filesystem catch-all `[...path]` is Next.js-only on Vercel).
 - Add new endpoints as internal routes/handlers under `backend/lib/` (e.g. `lib/routes/`).
 - Do **not** add additional `backend/api/*.js` entry files unless there is a hard platform reason.
-- Public paths stay REST-shaped (`/api/runs`, `/api/auth/me`, etc.); the catch-all dispatches by method + path.
+- Public paths stay REST-shaped (`/api/runs`, `/api/auth/me`, etc.); `lib/router.js` dispatches by method + path.
 
 ## Auth model
 

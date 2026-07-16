@@ -1,11 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-import {
-  encryptSecret,
-  decryptSecret,
-  persistApiKey,
-  loadStoredApiKey,
-} from '../lib/secureStorage'
+import { encryptSecret, decryptSecret, persistApiKey, loadStoredApiKey } from '../lib/secureStorage'
 
 function createMemorySessionStorage() {
   const data = new Map()

@@ -98,11 +98,15 @@ async function verifyConnection() {
       No access key configured. Backend requests will be unauthorized.
     </p>
 
-    <p v-if="saveMessage" class="save-message" role="status" data-test="save-message">{{ saveMessage }}</p>
+    <p v-if="saveMessage" class="save-message" role="status" data-test="save-message">
+      {{ saveMessage }}
+    </p>
     <p v-if="verifyMessage" class="verify-message" role="status" data-test="verify-message">
       {{ verifyMessage }}
     </p>
-    <p v-if="verifyError" class="verify-error" role="alert" data-test="verify-error">{{ verifyError }}</p>
+    <p v-if="verifyError" class="verify-error" role="alert" data-test="verify-error">
+      {{ verifyError }}
+    </p>
     <p v-if="verifiedUser" class="verified-user" data-test="verified-user">
       {{ verifiedUser.name || 'User' }} · {{ verifiedUser.email }}
     </p>

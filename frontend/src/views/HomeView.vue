@@ -31,9 +31,7 @@ import { RouterLink } from 'vue-router'
         </li>
         <li class="feature-card">
           <h3>Private &amp; secure</h3>
-          <p>
-            Sign in with a personal access key stored only in this browser tab for the session.
-          </p>
+          <p>Sign in with a personal access key stored only in this browser tab for the session.</p>
         </li>
       </ul>
     </section>

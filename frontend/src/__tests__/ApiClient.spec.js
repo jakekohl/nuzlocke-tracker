@@ -14,9 +14,7 @@ describe('ApiClient', () => {
     const store = useApiKeyStore()
     await store.setApiKey('test-secret')
 
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify({ id: 1 }), { status: 200 }),
-    )
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ id: 1 }), { status: 200 }))
 
     const client = new ApiClient('http://localhost:3000')
     await client.getRun(1)
@@ -34,9 +32,7 @@ describe('ApiClient', () => {
   })
 
   it('POSTs JSON body to create a run', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify({ id: 1 }), { status: 201 }),
-    )
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ id: 1 }), { status: 201 }))
 
     const client = new ApiClient('http://localhost:3000')
     const body = { name: 'Run', startDate: 1, userId: 1, gameId: 1 }

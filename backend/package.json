@@ -7,6 +7,6 @@
   },
   "dependencies": {
     "mongoose": "^9.6.3",
-    "vercel": "^54.9.0"
+    "vercel": "^56.2.1"
   }
 }

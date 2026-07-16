@@ -1,17 +1,36 @@
 describe('Settings access key', () => {
-  it('should load the settings page without API Explorer', () => {
-    cy.visit('/')
-    cy.getDataTest('nav-link-settings').should('be.visible')
-    cy.get('body').should('not.contain', 'API Explorer')
-    cy.getDataTest('api-key-status-missing').should('be.visible')
+
+  context('Setting the access key', () => {
+    beforeEach(() => {
+      cy.clearLocalStorage()
+      cy.clearCookies()
+      cy.visit('/settings')
+    })
+    it('should save an access key and verify it', () => {
+      cy.fixture('api_auth.json').then((api_auth) => {
+        cy.intercept('GET', '**/api/auth/me', api_auth).as('api_auth');
+      });
+      cy.setSettingsAccessKey('nuz_cypress_test_key_value');
+      cy.validateSettingsAccessKeyStatus();
+      cy.verifyAccessKey();
+      cy.wait('@api_auth').then((interception) => {
+        expect(interception.response.statusCode).to.equal(200);
+        expect(interception.response.body.id).to.equal(1);
+        expect(interception.response.body.name).to.equal('You');
+        expect(interception.response.body.email).to.equal('you@example.com');
+        expect(interception.response.body.apiKeyPrefix).to.equal('nuz_dl2s');
+      });
+    })
   })
 
-  it('should save an access key and show configured status', () => {
-    cy.visit('/')
-    cy.clickDataTest('api-button-set')
-    cy.getDataTest('api-key-input').type('nuz_cypress_test_key_value', { log: false })
-    cy.clickDataTest('api-button-save')
-    cy.getDataTest('api-key-status-ok').should('be.visible')
-    cy.getDataTest('save-message').should('contain', 'saved')
+  context('Managing the access key', () => {
+    beforeEach(() => {
+      cy.visit('/settings');
+      cy.setSettingsAccessKey('nuz_cypress_test_key_value');
+    })
+    it('should clear the access key and show missing status', () => {
+      cy.clearAccessKey();
+      cy.validateSettingsAccessKeyStatusMissing();
+    })
   })
 })

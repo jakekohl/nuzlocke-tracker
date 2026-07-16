@@ -30,10 +30,7 @@ async function getOrCreateWrapKey() {
   }
 
   const keyData = base64ToBytes(raw)
-  return crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, [
-    'encrypt',
-    'decrypt',
-  ])
+  return crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
 }
 
 /**

@@ -1,6 +1,4 @@
-<script setup>
-
-</script>
+<script setup></script>
 
 <template>
   <main class="settings">
@@ -8,5 +6,4 @@
   </main>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

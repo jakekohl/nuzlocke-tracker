@@ -1,11 +1,10 @@
 import { useApiKeyStore } from '@/stores/apiKey'
 
 function resolveBaseUrl() {
-  return (
-    import.meta.env.VITE_API_BASE_URL ??
-    import.meta.env.VITE_API_URL ??
-    ''
-  ).replace(/\/$/, '')
+  return (import.meta.env.VITE_API_BASE_URL ?? import.meta.env.VITE_API_URL ?? '').replace(
+    /\/$/,
+    '',
+  )
 }
 
 export class ApiClient {

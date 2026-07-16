@@ -90,19 +90,23 @@ async function verifyConnection() {
       this tab’s session only — not in a password manager sync or long-lived cookie.
     </p>
 
-    <p v-if="apiKeyStore.isConfigured" class="status status--ok" data-test="api-key-status-ok">
+    <p v-if="apiKeyStore.isConfigured" class="status status--ok" data-test="api-key-status">
       Access key is configured
       <span v-if="apiKeyStore.apiKey" class="prefix">({{ apiKeyStore.apiKey.slice(0, 8) }}…)</span>
     </p>
-    <p v-else class="status status--warn" data-test="api-key-status-missing">
+    <p v-else class="status status--warn" data-test="api-key-status">
       No access key configured. Backend requests will be unauthorized.
     </p>
 
-    <p v-if="saveMessage" class="save-message" role="status" data-test="save-message">{{ saveMessage }}</p>
+    <p v-if="saveMessage" class="save-message" role="status" data-test="save-message">
+      {{ saveMessage }}
+    </p>
     <p v-if="verifyMessage" class="verify-message" role="status" data-test="verify-message">
       {{ verifyMessage }}
     </p>
-    <p v-if="verifyError" class="verify-error" role="alert" data-test="verify-error">{{ verifyError }}</p>
+    <p v-if="verifyError" class="verify-error" role="alert" data-test="verify-error">
+      {{ verifyError }}
+    </p>
     <p v-if="verifiedUser" class="verified-user" data-test="verified-user">
       {{ verifiedUser.name || 'User' }} · {{ verifiedUser.email }}
     </p>

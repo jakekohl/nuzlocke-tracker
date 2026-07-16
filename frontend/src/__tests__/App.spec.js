@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 
 import App from '../App.vue'
+import Home from '../views/Home.vue'
 import SettingsView from '../views/SettingsView.vue'
 
 describe('App', () => {
@@ -17,10 +18,13 @@ describe('App', () => {
     })
   })
 
-  it('renders the settings view', async () => {
+  it('renders the home landing page', async () => {
     const router = createRouter({
       history: createWebHistory(),
-      routes: [{ path: '/', component: SettingsView }],
+      routes: [
+        { path: '/', component: Home },
+        { path: '/settings', component: SettingsView },
+      ],
     })
 
     await router.push('/')
@@ -32,8 +36,7 @@ describe('App', () => {
       },
     })
 
-    expect(wrapper.text()).toContain('Settings')
-    expect(wrapper.text()).toContain('Set Access Key')
-    expect(wrapper.text()).not.toContain('API Explorer')
+    expect(wrapper.text()).toContain('Nuzlocke Tracker')
+    expect(wrapper.text()).toContain('Get started')
   })
 })

@@ -41,6 +41,13 @@ describe('getRouteParam', () => {
     )
   })
 
+  it('reads id for pokemon resources', () => {
+    assert.equal(
+      getRouteParam({ query: { path: ['pokemon', '25'] }, url: '/api/pokemon/25' }, 'id'),
+      '25',
+    )
+  })
+
   it('returns null when id cannot be resolved', () => {
     assert.equal(getRouteParam({ query: {}, url: '/api/runs' }, 'id'), null)
   })

@@ -1,5 +1,6 @@
 import { getPathSegments } from './requestParams.js'
 import { handleAuth } from './routes/auth.js'
+import { handlePokemon } from './routes/pokemon.js'
 import { handleRuns } from './routes/runs.js'
 import { handleUsers } from './routes/users.js'
 
@@ -21,6 +22,8 @@ export async function dispatch(req, res) {
       return handleAuth(req, res, segments)
     case 'runs':
       return handleRuns(req, res, segments)
+    case 'pokemon':
+      return handlePokemon(req, res, segments)
     default:
       return res.status(404).json({ message: 'Not found' })
   }

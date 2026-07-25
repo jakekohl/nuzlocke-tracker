@@ -37,7 +37,7 @@ export function getRouteParam(req, paramName) {
 
   const segments = getPathSegments(req)
 
-  if (paramName === 'id' && segments.length >= 2 && segments[0] === 'runs') {
+  if (paramName === 'id' && segments.length >= 2) {
     return segments[1]
   }
 

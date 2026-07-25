@@ -3,6 +3,7 @@ import { handleAuth } from './routes/auth.js'
 import { handleGameRoutes } from './routes/gameRoutes.js'
 import { handlePokemon } from './routes/pokemon.js'
 import { handleRuns } from './routes/runs.js'
+import { handleSeed } from './routes/seed.js'
 import { handleUsers } from './routes/users.js'
 
 /**
@@ -27,6 +28,8 @@ export async function dispatch(req, res) {
       return handlePokemon(req, res, segments)
     case 'routes':
       return handleGameRoutes(req, res, segments)
+    case 'seed':
+      return handleSeed(req, res, segments)
     default:
       return res.status(404).json({ message: 'Not found' })
   }

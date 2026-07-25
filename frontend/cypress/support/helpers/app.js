@@ -9,7 +9,7 @@ Cypress.Commands.add('setAccessKey', (key, encryptedKey) => {
   });
 });
 
-Cypress.Commands.add('clearAccessKey', () => {
+Cypress.Commands.add('clearStoredAccessKey', () => {
   cy.window().then((win) => {
     win.sessionStorage.removeItem('nuzlocke-wrap-key');
     win.sessionStorage.removeItem('nuzlocke-api-key-encrypted');

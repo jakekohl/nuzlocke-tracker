@@ -1,8 +1,8 @@
 describe('Settings access key', () => {
-
   context('Setting the access key', () => {
     beforeEach(() => {
-      cy.clearLocalStorage()
+      cy.clearAllLocalStorage()
+      cy.clearAllSessionStorage()
       cy.clearCookies()
       cy.visit('/settings')
     })
@@ -25,6 +25,9 @@ describe('Settings access key', () => {
 
   context('Managing the access key', () => {
     beforeEach(() => {
+      cy.clearAllLocalStorage()
+      cy.clearAllSessionStorage()
+      cy.clearCookies()
       cy.visit('/settings');
       cy.setSettingsAccessKey('nuz_cypress_test_key_value');
     })

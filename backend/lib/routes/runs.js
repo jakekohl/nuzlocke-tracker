@@ -1,13 +1,30 @@
 import { requireUser } from '../auth.js'
 import { getRouteParam } from '../requestParams.js'
+import { getRulesCatalog } from '../runRules.js'
 import {
   createRun,
   getRunById,
+  listRunsForUser,
   updateRun,
   inactiveRun,
 } from '../runService.js'
 
 export async function handleRuns(req, res, segments) {
+  // GET /api/runs/rules — rule catalog for create/edit UI
+  if (segments.length === 2 && segments[1] === 'rules' && req.method === 'GET') {
+    const user = await requireUser(req, res)
+    if (!user) return
+    return res.status(200).json({ rules: getRulesCatalog() })
+  }
+
+  // GET /api/runs — list current user's runs
+  if (segments.length === 1 && req.method === 'GET') {
+    const user = await requireUser(req, res)
+    if (!user) return
+    const runs = await listRunsForUser(user.id)
+    return res.status(200).json(runs)
+  }
+
   // POST /api/runs
   if (segments.length === 1 && req.method === 'POST') {
     const user = await requireUser(req, res)
@@ -24,7 +41,7 @@ export async function handleRuns(req, res, segments) {
     if (!user) return
 
     const id = getRouteParam(req, 'id') ?? segments[1]
-    if (!id) {
+    if (!id || id === 'rules') {
       return res.status(400).json({ message: 'Run ID is required' })
     }
 

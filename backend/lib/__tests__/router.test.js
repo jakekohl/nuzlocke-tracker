@@ -54,6 +54,15 @@ describe('dispatch', () => {
     assert.equal(res.statusCode, 401)
   })
 
+  it('returns 401 for GET /api/runs without key', async () => {
+    const res = mockRes()
+    await dispatch(
+      { method: 'GET', query: { path: ['runs'] }, headers: {}, url: '/api/runs' },
+      res,
+    )
+    assert.equal(res.statusCode, 401)
+  })
+
   it('returns 401 for POST /api/users/reset-key without bootstrap secret', async () => {
     const res = mockRes()
     await dispatch(

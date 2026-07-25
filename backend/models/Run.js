@@ -1,4 +1,9 @@
 import mongoose from 'mongoose'
+import { defaultRunRules, RULE_KEYS } from '../lib/runRules.js'
+
+const rulesShape = Object.fromEntries(
+  Object.values(RULE_KEYS).map((key) => [key, { type: Boolean, required: true }]),
+)
 
 const runSchema = new mongoose.Schema(
   {
@@ -8,6 +13,11 @@ const runSchema = new mongoose.Schema(
     endDate: { type: Number },
     status: { type: Number, required: true },
     notes: { type: String, default: '', trim: true },
+    rules: {
+      type: new mongoose.Schema(rulesShape, { _id: false }),
+      required: true,
+      default: () => defaultRunRules(),
+    },
     created: { type: Number },
     updated: { type: Number },
     userId: { type: Number, required: true },
@@ -16,6 +26,8 @@ const runSchema = new mongoose.Schema(
   },
   { versionKey: false },
 )
+
+runSchema.index({ userId: 1, inactive: 1 })
 
 export const gameIds = {
   red: 1,
@@ -54,6 +66,9 @@ export const gameIds = {
   legendsarceus: 34,
   legendsza: 35,
 }
+
+/** Games currently supported for route / encounter reference data. */
+export const supportedGameIds = new Set([gameIds.red, gameIds.blue])
 
 export const runStatuses = {
   notStarted: 0,

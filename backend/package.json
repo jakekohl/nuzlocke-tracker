@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "dev:api": "vercel dev",
+    "seed": "node --env-file=.env scripts/seed.js",
     "test": "node --test lib/__tests__/**/*.test.js"
   },
   "dependencies": {

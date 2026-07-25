@@ -37,6 +37,6 @@ describe('App', () => {
     })
 
     expect(wrapper.text()).toContain('Nuzlocke Tracker')
-    expect(wrapper.text()).toContain('Get started')
+    expect(wrapper.text()).toContain('View runs')
   })
 })

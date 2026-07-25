@@ -54,6 +54,56 @@ describe('dispatch', () => {
     assert.equal(res.statusCode, 401)
   })
 
+  it('returns 401 for GET /api/runs without key', async () => {
+    const res = mockRes()
+    await dispatch(
+      { method: 'GET', query: { path: ['runs'] }, headers: {}, url: '/api/runs' },
+      res,
+    )
+    assert.equal(res.statusCode, 401)
+  })
+
+  it('returns 401 for GET /api/pokemon without key', async () => {
+    const res = mockRes()
+    await dispatch(
+      { method: 'GET', query: { path: ['pokemon'] }, headers: {}, url: '/api/pokemon' },
+      res,
+    )
+    assert.equal(res.statusCode, 401)
+  })
+
+  it('returns 401 for GET /api/routes without key', async () => {
+    const res = mockRes()
+    await dispatch(
+      { method: 'GET', query: { path: ['routes'] }, headers: {}, url: '/api/routes' },
+      res,
+    )
+    assert.equal(res.statusCode, 401)
+  })
+
+  it('returns 401 for POST /api/seed without bootstrap secret', async () => {
+    const res = mockRes()
+    await dispatch(
+      { method: 'POST', query: { path: ['seed'] }, headers: {}, url: '/api/seed' },
+      res,
+    )
+    assert.equal(res.statusCode, 401)
+  })
+
+  it('returns 401 for GET /api/runs/1/encounters without key', async () => {
+    const res = mockRes()
+    await dispatch(
+      {
+        method: 'GET',
+        query: { path: ['runs', '1', 'encounters'] },
+        headers: {},
+        url: '/api/runs/1/encounters',
+      },
+      res,
+    )
+    assert.equal(res.statusCode, 401)
+  })
+
   it('returns 401 for POST /api/users/reset-key without bootstrap secret', async () => {
     const res = mockRes()
     await dispatch(

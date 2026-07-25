@@ -12,8 +12,11 @@ import { RouterLink } from 'vue-router'
         progress across every route and gym.
       </p>
       <div class="hero__actions">
-        <RouterLink to="/settings" class="btn btn--primary" data-test="home-cta-settings">
-          Get started
+        <RouterLink to="/runs" class="btn btn--primary" data-test="home-cta-runs">
+          View runs
+        </RouterLink>
+        <RouterLink to="/settings" class="btn" data-test="home-cta-settings">
+          Settings
         </RouterLink>
       </div>
     </section>
@@ -106,6 +109,10 @@ import { RouterLink } from 'vue-router'
 .btn--primary:hover {
   background: #1565c0;
   border-color: #1565c0;
+}
+
+.btn:not(.btn--primary):hover {
+  background: #f5f5f5;
 }
 
 .features h2 {

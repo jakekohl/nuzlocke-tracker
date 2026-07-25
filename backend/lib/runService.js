@@ -1,5 +1,6 @@
 import Run, { gameIds, runStatuses } from '../models/Run.js'
 import { getNextId } from './apiHandler.js'
+import { defaultRunRules, normalizeRunRules } from './runRules.js'
 import { toUnixTimestamp, unixNow } from './timestamps.js'
 
 const VALID_STATUSES = new Set(Object.values(runStatuses))
@@ -13,6 +14,9 @@ function httpError(statusCode, message) {
 
 export function toRunResponse(doc) {
   if (!doc) return null
+  const rules = doc.rules
+    ? { ...defaultRunRules(), ...(typeof doc.rules.toObject === 'function' ? doc.rules.toObject() : doc.rules) }
+    : defaultRunRules()
   return {
     id: doc.id,
     name: doc.name,
@@ -20,6 +24,7 @@ export function toRunResponse(doc) {
     endDate: doc.endDate ?? null,
     status: doc.status,
     notes: doc.notes ?? '',
+    rules,
     created: doc.created,
     updated: doc.updated,
     userId: doc.userId,
@@ -66,9 +71,22 @@ export function validateRunInput(data, { partial = false } = {}) {
     }
   }
 
+  if (data.rules !== undefined) {
+    normalizeRunRules(data.rules, { partial: true })
+  }
+
   if (!partial && data.userId == null) {
     throw httpError(400, 'userId is required')
   }
+}
+
+export async function listRunsForUser(userId, { includeInactive = false } = {}) {
+  const query = { userId: Number(userId) }
+  if (!includeInactive) {
+    query.inactive = null
+  }
+  const runs = await Run.find(query).sort({ updated: -1 }).lean()
+  return runs.map(toRunResponse)
 }
 
 export async function getRunById(id, { includeInactive = false } = {}) {
@@ -87,18 +105,20 @@ export async function createRun(data) {
   const startDate = toUnixTimestamp(data.startDate)
   const endDate = data.endDate != null ? toUnixTimestamp(data.endDate) : undefined
   const id = await getNextId(Run)
+  const rules = normalizeRunRules(data.rules)
   const run = await Run.create({
-    id: id,
+    id,
     name: data.name.trim(),
-    startDate: startDate,
-    endDate: endDate,
+    startDate,
+    endDate,
     status: data.status ?? runStatuses.notStarted,
     notes: data.notes ?? '',
+    rules,
     created: now,
     updated: now,
     userId: data.userId,
     gameId: Number(data.gameId),
-    inactive: undefined
+    inactive: undefined,
   })
   return toRunResponse(run)
 }
@@ -115,12 +135,29 @@ export function buildRunUpdates(data, now = unixNow()) {
   if (data.status !== undefined) updates.status = Number(data.status)
   if (data.notes !== undefined) updates.notes = data.notes
   if (data.gameId !== undefined) updates.gameId = Number(data.gameId)
+  if (data.rules !== undefined) {
+    // Merge onto defaults so partial rule patches still persist a full document.
+    updates.rules = normalizeRunRules(data.rules)
+  }
 
   return updates
 }
 
 export async function updateRun(id, data) {
-  const updates = buildRunUpdates(data)
+  const existing = await Run.findOne({ id: Number(id), inactive: null })
+  if (!existing) return null
+
+  const payload = { ...data }
+  if (data.rules !== undefined) {
+    const stored =
+      typeof existing.rules?.toObject === 'function'
+        ? existing.rules.toObject()
+        : (existing.rules ?? {})
+    const current = { ...defaultRunRules(), ...stored }
+    payload.rules = normalizeRunRules({ ...current, ...data.rules })
+  }
+
+  const updates = buildRunUpdates(payload)
 
   const run = await Run.findOneAndUpdate({ id: Number(id), inactive: null }, updates, {
     new: true,

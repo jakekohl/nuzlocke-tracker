@@ -5,7 +5,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 
 import App from '../App.vue'
-import Home from '../views/Home.vue'
+import HomeView from '../views/HomeView.vue'
 import SettingsView from '../views/SettingsView.vue'
 
 describe('App', () => {
@@ -22,7 +22,7 @@ describe('App', () => {
     const router = createRouter({
       history: createWebHistory(),
       routes: [
-        { path: '/', component: Home },
+        { path: '/', component: HomeView },
         { path: '/settings', component: SettingsView },
       ],
     })

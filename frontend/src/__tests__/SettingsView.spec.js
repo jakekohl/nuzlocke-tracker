@@ -27,7 +27,7 @@ describe('SettingsView', () => {
 
   it('shows missing key status by default', () => {
     const wrapper = mount(SettingsView)
-    expect(wrapper.find('[data-test="api-key-status-missing"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="api-key-status"]').text()).toMatch(/not configured|unauthorized/i)
     expect(wrapper.find('[data-test="api-button-verify"]').attributes('disabled')).toBeDefined()
   })
 

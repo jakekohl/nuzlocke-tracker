@@ -6,7 +6,9 @@
     "test": "node --test lib/__tests__/**/*.test.js"
   },
   "dependencies": {
-    "mongoose": "^9.6.3",
-    "vercel": "^56.2.1"
+    "mongoose": "^9.6.3"
+  },
+  "devDependencies": {
+    "vercel": "^57.0.0"
   }
 }

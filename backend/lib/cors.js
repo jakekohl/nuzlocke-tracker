@@ -6,12 +6,14 @@ const DEFAULT_ORIGINS = [
 function getAllowedOrigins() {
   const fromEnv = process.env.CORS_ORIGINS?.trim()
   if (!fromEnv) return DEFAULT_ORIGINS
-  return fromEnv.split(',').map((origin) => origin.trim()).filter(Boolean)
+  return fromEnv
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin && origin !== '*')
 }
 
 function resolveAllowOrigin(requestOrigin, allowedOrigins) {
   if (!requestOrigin) return null
-  if (allowedOrigins.includes('*')) return '*'
   if (allowedOrigins.includes(requestOrigin)) return requestOrigin
   return null
 }
@@ -22,9 +24,7 @@ export function applyCors(req, res) {
 
   if (allowOrigin) {
     res.setHeader('Access-Control-Allow-Origin', allowOrigin)
-    if (allowOrigin !== '*') {
-      res.setHeader('Access-Control-Allow-Credentials', 'true')
-    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
   }
 
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')

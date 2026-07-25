@@ -20,6 +20,8 @@
     "test:unit": "vitest",
     "cy:open": "cypress open",
     "cy:run": "cypress run",
+    "test:e2e": "start-server-and-test dev http://localhost:5173 cy:run",
+    "test:e2e:dev": "start-server-and-test dev http://localhost:5173 cy:open",
     "lint": "run-s lint:*",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",

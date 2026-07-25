@@ -47,6 +47,14 @@ curl -X POST "$API_BASE/api/users" \
 
 Paste the `apiKey` into the frontend Settings page. Use **Verify Connection** (`GET /api/auth/me`) to confirm.
 
+While signed in, rotate your own key (invalidates the old key; new `apiKey` is shown once):
+
+```shell
+curl -X POST "$API_BASE/api/users/rotate-key" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $API_KEY"
+```
+
 If you lose a key, reset it with the bootstrap secret (old key is invalidated; new `apiKey` is shown once):
 
 ```shell
@@ -55,6 +63,8 @@ curl -X POST "$API_BASE/api/users/reset-key" \
   -H "x-bootstrap-secret: $BOOTSTRAP_SECRET" \
   -d '{"email":"you@example.com"}'
 ```
+
+In production, set `CORS_ORIGINS` on the backend to your real frontend origin(s) (comma-separated). Do not use `*`.
 
 
 ## Tests

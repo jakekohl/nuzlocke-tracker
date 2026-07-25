@@ -48,6 +48,36 @@ const sortedRules = computed(() =>
   }),
 )
 
+const RULE_CATEGORY_LABELS = {
+  core: 'Core',
+  optional: 'Optional',
+  hardcore: 'Hardcore',
+  softener: 'Softeners',
+}
+
+const rulesByCategory = computed(() => {
+  const groups = []
+  const byKey = new Map()
+  for (const rule of sortedRules.value) {
+    const category = rule.category || 'other'
+    if (!byKey.has(category)) {
+      const group = {
+        category,
+        label: RULE_CATEGORY_LABELS[category] ?? category,
+        rules: [],
+      }
+      byKey.set(category, group)
+      groups.push(group)
+    }
+    byKey.get(category).rules.push(rule)
+  }
+  return groups
+})
+
+const enabledRuleCount = computed(
+  () => Object.values(editRules.value).filter((value) => value === true).length,
+)
+
 const usedRouteIds = computed(() => new Set(encounters.value.map((e) => e.routeId)))
 
 const availableRoutes = computed(() =>
@@ -339,13 +369,15 @@ watch(runId, loadRun)
 
     <template v-else-if="run">
       <header class="hero" data-test="run-detail-header">
-        <p class="eyebrow">{{ formatGame(run.gameId) }}</p>
-        <h1 data-test="run-detail-name">{{ run.name }}</h1>
-        <div class="hero__meta">
-          <span class="pill pill--status" data-test="run-detail-status">
-            {{ formatRunStatus(run.status) }}
-          </span>
-          <span class="muted">Started {{ formatUnixDate(run.startDate) }}</span>
+        <div class="hero__text">
+          <p class="eyebrow">{{ formatGame(run.gameId) }}</p>
+          <h1 data-test="run-detail-name">{{ run.name }}</h1>
+          <div class="hero__meta">
+            <span class="pill pill--status" data-test="run-detail-status">
+              {{ formatRunStatus(run.status) }}
+            </span>
+            <span class="muted">Started {{ formatUnixDate(run.startDate) }}</span>
+          </div>
         </div>
         <div class="hero__actions">
           <button
@@ -364,95 +396,113 @@ watch(runId, loadRun)
         {{ actionError }}
       </p>
 
-      <section class="section" aria-labelledby="details-heading">
-        <div class="section__head">
-          <h2 id="details-heading">Details</h2>
-          <button
-            type="button"
-            class="btn btn--primary"
-            data-test="run-button-save-details"
-            :disabled="savingDetails"
-            @click="saveDetails"
-          >
-            {{ savingDetails ? 'Saving…' : 'Save details' }}
-          </button>
-        </div>
-
-        <label class="field" for="edit-name">Name</label>
-        <input
-          id="edit-name"
-          v-model="editDetails.name"
-          type="text"
-          class="field__input"
-          data-test="run-edit-name"
-        />
-
-        <label class="field" for="edit-status">Status</label>
-        <select
-          id="edit-status"
-          v-model.number="editDetails.status"
-          class="field__input"
-          data-test="run-edit-status"
-        >
-          <option v-for="opt in runStatusOptions" :key="opt.value" :value="opt.value">
-            {{ opt.label }}
-          </option>
-        </select>
-
-        <label class="field" for="edit-start">Start date</label>
-        <input
-          id="edit-start"
-          v-model="editDetails.startDate"
-          type="date"
-          class="field__input"
-          data-test="run-edit-start"
-        />
-
-        <label class="field" for="edit-notes">Notes</label>
-        <textarea
-          id="edit-notes"
-          v-model="editDetails.notes"
-          class="field__input field__textarea"
-          rows="3"
-          data-test="run-edit-notes"
-        />
-      </section>
-
-      <section class="section" aria-labelledby="rules-heading">
-        <div class="section__head">
-          <div>
-            <h2 id="rules-heading">Rules</h2>
-            <p class="section-lede">Toggle clauses for this run, then save.</p>
+      <div class="panels">
+        <section class="panel" aria-labelledby="details-heading">
+          <div class="section__head">
+            <h2 id="details-heading">Details</h2>
+            <button
+              type="button"
+              class="btn btn--primary"
+              data-test="run-button-save-details"
+              :disabled="savingDetails"
+              @click="saveDetails"
+            >
+              {{ savingDetails ? 'Saving…' : 'Save' }}
+            </button>
           </div>
-          <button
-            type="button"
-            class="btn btn--primary"
-            data-test="run-button-save-rules"
-            :disabled="savingRules"
-            @click="saveRules"
-          >
-            {{ savingRules ? 'Saving…' : 'Save rules' }}
-          </button>
-        </div>
 
-        <ul class="rule-edit-list" data-test="run-detail-rules-edit">
-          <li v-for="rule in sortedRules" :key="rule.key" class="rule-edit">
-            <label class="rule-edit__label">
+          <div class="details-grid">
+            <div class="field-block">
+              <label class="field" for="edit-name">Name</label>
               <input
-                v-model="editRules[rule.key]"
-                type="checkbox"
-                :data-test="`run-rule-${rule.key}`"
+                id="edit-name"
+                v-model="editDetails.name"
+                type="text"
+                class="field__input"
+                data-test="run-edit-name"
               />
-              <span>
-                <span class="rule-edit__name">{{ rule.label }}</span>
-                <span class="rule-edit__desc">{{ rule.description }}</span>
-              </span>
-            </label>
-          </li>
-        </ul>
-      </section>
+            </div>
 
-      <section class="section" aria-labelledby="encounters-heading">
+            <div class="field-block">
+              <label class="field" for="edit-status">Status</label>
+              <select
+                id="edit-status"
+                v-model.number="editDetails.status"
+                class="field__input"
+                data-test="run-edit-status"
+              >
+                <option v-for="opt in runStatusOptions" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
+
+            <div class="field-block">
+              <label class="field" for="edit-start">Start date</label>
+              <input
+                id="edit-start"
+                v-model="editDetails.startDate"
+                type="date"
+                class="field__input"
+                data-test="run-edit-start"
+              />
+            </div>
+
+            <div class="field-block field-block--full">
+              <label class="field" for="edit-notes">Notes</label>
+              <textarea
+                id="edit-notes"
+                v-model="editDetails.notes"
+                class="field__input field__textarea"
+                rows="4"
+                data-test="run-edit-notes"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="rules-heading">
+          <div class="section__head">
+            <div>
+              <h2 id="rules-heading">Rules</h2>
+              <p class="section-lede">{{ enabledRuleCount }} enabled · hover a rule for details</p>
+            </div>
+            <button
+              type="button"
+              class="btn btn--primary"
+              data-test="run-button-save-rules"
+              :disabled="savingRules"
+              @click="saveRules"
+            >
+              {{ savingRules ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
+
+          <div class="rules-compact" data-test="run-detail-rules-edit">
+            <div v-for="group in rulesByCategory" :key="group.category" class="rules-group">
+              <h3 class="rules-group__title">{{ group.label }}</h3>
+              <ul class="rule-chip-list">
+                <li v-for="rule in group.rules" :key="rule.key">
+                  <label
+                    class="rule-chip"
+                    :class="{ 'rule-chip--on': editRules[rule.key] }"
+                    :title="rule.description"
+                  >
+                    <input
+                      v-model="editRules[rule.key]"
+                      type="checkbox"
+                      :data-test="`run-rule-${rule.key}`"
+                    />
+                    <span>{{ rule.label }}</span>
+                  </label>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel panel--encounters" aria-labelledby="encounters-heading">
         <div class="section__head">
           <div>
             <h2 id="encounters-heading">Encounters</h2>
@@ -632,7 +682,7 @@ watch(runId, loadRun)
 
 <style scoped>
 .run-detail {
-  max-width: 42rem;
+  max-width: 64rem;
   margin: 2rem auto;
   padding: 0 1rem 3rem;
   font-family:
@@ -670,7 +720,12 @@ watch(runId, loadRun)
 }
 
 .hero {
-  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .eyebrow {
@@ -683,7 +738,7 @@ watch(runId, loadRun)
 }
 
 .hero h1 {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.5rem;
   font-size: clamp(1.75rem, 4vw, 2.25rem);
   line-height: 1.2;
 }
@@ -694,7 +749,6 @@ watch(runId, loadRun)
   gap: 0.65rem;
   align-items: center;
   font-size: 0.9rem;
-  margin-bottom: 0.75rem;
 }
 
 .hero__actions {
@@ -718,10 +772,28 @@ watch(runId, loadRun)
   color: #666;
 }
 
-.section {
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid #eee;
+.panels {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 52rem) {
+  .panels {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: start;
+  }
+}
+
+.panel {
+  padding: 1rem 1.1rem 1.15rem;
+  border: 1px solid #e6e6e6;
+  border-radius: 0.65rem;
+  background: #fff;
+}
+
+.panel--encounters {
+  margin-bottom: 1rem;
 }
 
 .section__head {
@@ -729,25 +801,44 @@ watch(runId, loadRun)
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
-.section h2 {
-  margin: 0 0 0.35rem;
-  font-size: 1.15rem;
+.section__head h2 {
+  margin: 0 0 0.2rem;
+  font-size: 1.1rem;
 }
 
 .section-lede {
   margin: 0;
-  font-size: 0.9rem;
-  color: #555;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.details-grid {
+  display: grid;
+  gap: 0.65rem 0.85rem;
+}
+
+@media (min-width: 28rem) {
+  .details-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .field-block--full {
+    grid-column: 1 / -1;
+  }
+}
+
+.field-block .field {
+  margin-top: 0;
 }
 
 .field {
   display: block;
   margin: 0.75rem 0 0.375rem;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
 .field--inline {
@@ -760,7 +851,7 @@ watch(runId, loadRun)
 .field__input {
   width: 100%;
   box-sizing: border-box;
-  padding: 0.5rem 0.75rem;
+  padding: 0.45rem 0.65rem;
   border: 1px solid #ccc;
   border-radius: 0.375rem;
   font: inherit;
@@ -776,7 +867,7 @@ watch(runId, loadRun)
 }
 
 .btn {
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 0.85rem;
   border: 1px solid #ccc;
   border-radius: 0.375rem;
   background: #fff;
@@ -805,40 +896,50 @@ watch(runId, loadRun)
   background: #ffebee;
 }
 
-.rule-edit-list {
+.rules-compact {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.rules-group__title {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #777;
+}
+
+.rule-chip-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 0.65rem;
-}
-
-.rule-edit {
-  border: 1px solid #e0e0e0;
-  border-radius: 0.5rem;
-  background: #fafafa;
-}
-
-.rule-edit__label {
   display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-  padding: 0.75rem 0.9rem;
-  cursor: pointer;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
-.rule-edit__name {
-  display: block;
-  font-weight: 600;
-}
-
-.rule-edit__desc {
-  display: block;
-  margin-top: 0.2rem;
+.rule-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background: #f7f7f7;
   font-size: 0.8rem;
-  color: #555;
-  line-height: 1.35;
-  font-weight: 400;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rule-chip input {
+  margin: 0;
+}
+
+.rule-chip--on {
+  border-color: #90caf9;
+  background: #e3f2fd;
+  color: #0d47a1;
 }
 
 .encounter-list {

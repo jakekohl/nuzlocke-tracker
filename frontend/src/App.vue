@@ -4,6 +4,7 @@
   <div class="app">
     <nav class="app-nav">
       <RouterLink to="/" data-test="nav-link-home">Home</RouterLink>
+      <RouterLink to="/runs" data-test="nav-link-runs">Runs</RouterLink>
       <RouterLink to="/settings" data-test="nav-link-settings">Settings</RouterLink>
     </nav>
     <RouterView />

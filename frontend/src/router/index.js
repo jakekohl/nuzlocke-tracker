@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import HomeView from '@/views/HomeView.vue'
 import SettingsView from '@/views/SettingsView.vue'
+import RunsView from '@/views/RunsView.vue'
+import RunDetailView from '@/views/RunDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,6 +14,22 @@ const router = createRouter({
       component: HomeView,
       meta: {
         title: 'Nuzlocke Tracker',
+      },
+    },
+    {
+      path: '/runs',
+      name: 'runs',
+      component: RunsView,
+      meta: {
+        title: 'Runs',
+      },
+    },
+    {
+      path: '/runs/:id',
+      name: 'run-detail',
+      component: RunDetailView,
+      meta: {
+        title: 'Run',
       },
     },
     {

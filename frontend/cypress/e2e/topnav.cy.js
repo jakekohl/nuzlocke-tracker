@@ -7,6 +7,11 @@ describe('Settings access key', () => {
       testId: 'nav-link-home',
     },
     {
+      label: 'Runs',
+      url: '/runs',
+      testId: 'nav-link-runs',
+    },
+    {
       label: 'Settings',
       url: '/settings',
       testId: 'nav-link-settings',

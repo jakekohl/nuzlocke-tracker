@@ -46,16 +46,22 @@ export async function createRun(data) {
   return toRunResponse(run)
 }
 
-export async function updateRun(id, data) {
-  const updates = { updated: unixNow() }
+/** Build Mongo updates for a run. Never accepts userId (ownership is immutable). */
+export function buildRunUpdates(data, now = unixNow()) {
+  const updates = { updated: now }
 
   if (data.name !== undefined) updates.name = data.name
   if (data.startDate !== undefined) updates.startDate = toUnixTimestamp(data.startDate)
   if (data.endDate !== undefined) updates.endDate = toUnixTimestamp(data.endDate)
   if (data.status !== undefined) updates.status = data.status
   if (data.notes !== undefined) updates.notes = data.notes
-  if (data.userId !== undefined) updates.userId = data.userId
   if (data.gameId !== undefined) updates.gameId = data.gameId
+
+  return updates
+}
+
+export async function updateRun(id, data) {
+  const updates = buildRunUpdates(data)
 
   const run = await Run.findOneAndUpdate({ id: Number(id) }, updates, {
     new: true,

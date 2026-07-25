@@ -90,6 +90,20 @@ describe('dispatch', () => {
     assert.equal(res.statusCode, 401)
   })
 
+  it('returns 401 for GET /api/runs/1/encounters without key', async () => {
+    const res = mockRes()
+    await dispatch(
+      {
+        method: 'GET',
+        query: { path: ['runs', '1', 'encounters'] },
+        headers: {},
+        url: '/api/runs/1/encounters',
+      },
+      res,
+    )
+    assert.equal(res.statusCode, 401)
+  })
+
   it('returns 401 for POST /api/users/reset-key without bootstrap secret', async () => {
     const res = mockRes()
     await dispatch(

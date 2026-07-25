@@ -20,8 +20,12 @@ export function toRunResponse(doc) {
   }
 }
 
-export async function getRunById(id) {
-  const run = await Run.findOne({ id: Number(id) })
+export async function getRunById(id, { includeInactive = false } = {}) {
+  const query = { id: Number(id) }
+  if (!includeInactive) {
+    query.inactive = null
+  }
+  const run = await Run.findOne(query)
   return toRunResponse(run)
 }
 
@@ -63,7 +67,7 @@ export function buildRunUpdates(data, now = unixNow()) {
 export async function updateRun(id, data) {
   const updates = buildRunUpdates(data)
 
-  const run = await Run.findOneAndUpdate({ id: Number(id) }, updates, {
+  const run = await Run.findOneAndUpdate({ id: Number(id), inactive: null }, updates, {
     new: true,
     runValidators: true,
   })
@@ -71,8 +75,11 @@ export async function updateRun(id, data) {
 }
 
 export async function inactiveRun(id) {
-  const run = await Run.findOneAndUpdate({ id: Number(id) }, { inactive: unixNow(), updated: unixNow() }, {
-    new: true,
+  const run = await Run.findOneAndUpdate(
+    { id: Number(id), inactive: null },
+    { inactive: unixNow(), updated: unixNow() },
+    {
+      new: true,
       runValidators: true,
     },
   )

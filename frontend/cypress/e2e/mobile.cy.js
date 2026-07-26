@@ -50,7 +50,7 @@ for (const viewport of viewports) {
       })
 
       it('should save an access key and verify it', () => {
-        cy.fixture('api_auth.json').then((api_auth) => {
+        cy.fixture('api/auth/ok.json').then((api_auth) => {
           cy.intercept('GET', '**/api/auth/me', api_auth).as('api_auth')
         })
         cy.setSettingsAccessKey('nuz_cypress_test_key_value')

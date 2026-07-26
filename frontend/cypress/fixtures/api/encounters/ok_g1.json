@@ -1,0 +1,17 @@
+[
+  {
+      "id": 1,
+      "runId": 5,
+      "routeId": 1,
+      "pokemonId": 1,
+      "nickname": "Bulba",
+      "status": 0,
+      "isShiny": false,
+      "level": 5,
+      "notes": "",
+      "caughtAt": 1785021274,
+      "created": 1785021274,
+      "updated": 1785021274,
+      "inactive": null
+  }
+]

@@ -1,0 +1,144 @@
+{
+  "rules": [
+      {
+          "key": "firstEncounterOnly",
+          "label": "First encounter only",
+          "description": "Only the first wild Pokémon in each area may be caught. If it faints or flees, the area is lost.",
+          "category": "core",
+          "default": true
+      },
+      {
+          "key": "permadeath",
+          "label": "Permadeath",
+          "description": "Any Pokémon that faints is dead and must be released or permanently boxed.",
+          "category": "core",
+          "default": true
+      },
+      {
+          "key": "nicknameRequired",
+          "label": "Nicknames required",
+          "description": "Every caught or obtained Pokémon must be nicknamed.",
+          "category": "core",
+          "default": true
+      },
+      {
+          "key": "dupesClause",
+          "label": "Dupes / species clause",
+          "description": "Skip encounters that are a species (or evolution line) you already own until a new line appears.",
+          "category": "optional",
+          "default": true
+      },
+      {
+          "key": "shinyClause",
+          "label": "Shiny clause",
+          "description": "Shinies may be caught even if they are not the first encounter in an area.",
+          "category": "optional",
+          "default": true
+      },
+      {
+          "key": "setMode",
+          "label": "Set mode",
+          "description": "Battle style must be Set (no free switch when an opponent’s Pokémon faints).",
+          "category": "optional",
+          "default": false
+      },
+      {
+          "key": "levelCap",
+          "label": "Level cap",
+          "description": "Party Pokémon may not exceed the next gym / major boss ace level until that fight is cleared.",
+          "category": "optional",
+          "default": false
+      },
+      {
+          "key": "blackoutIsFailure",
+          "label": "Blackout = run over",
+          "description": "A full party wipe / blackout fails the run even if living Pokémon remain in the PC.",
+          "category": "optional",
+          "default": true
+      },
+      {
+          "key": "giftPokemonAreEncounters",
+          "label": "Gifts count as encounters",
+          "description": "Gift and static Pokémon (starter, Lapras, fossils, etc.) each count as that area’s encounter.",
+          "category": "optional",
+          "default": true
+      },
+      {
+          "key": "noOutsideTrading",
+          "label": "No outside trading",
+          "description": "Only in-game obtains; no trades from other saves or Mystery Gift.",
+          "category": "optional",
+          "default": true
+      },
+      {
+          "key": "noItemsInBattle",
+          "label": "No items in battle",
+          "description": "Bag / status items (and typically X-items) may not be used during battles.",
+          "category": "hardcore",
+          "default": false
+      },
+      {
+          "key": "noHeldItems",
+          "label": "No held items",
+          "description": "Held items may not be used.",
+          "category": "hardcore",
+          "default": false
+      },
+      {
+          "key": "noHealingItems",
+          "label": "No healing items",
+          "description": "Potions and status heals may not be used (Pokémon Centers still allowed).",
+          "category": "hardcore",
+          "default": false
+      },
+      {
+          "key": "noMasterBall",
+          "label": "No Master Ball",
+          "description": "The Master Ball may not be used.",
+          "category": "hardcore",
+          "default": false
+      },
+      {
+          "key": "noRareCandy",
+          "label": "No Rare Candy",
+          "description": "Rare Candies may not be used for leveling.",
+          "category": "hardcore",
+          "default": false
+      },
+      {
+          "key": "shinyImmuneToPermadeath",
+          "label": "Shinies ignore permadeath",
+          "description": "Caught shinies need not be released if they faint (often paired with shiny clause).",
+          "category": "softener",
+          "default": false
+      },
+      {
+          "key": "hmHelper",
+          "label": "HM helper",
+          "description": "An extra catch is allowed solely for required field moves; it cannot battle and is released when no longer needed.",
+          "category": "softener",
+          "default": false
+      },
+      {
+          "key": "safariZonePerSection",
+          "label": "Safari Zone per section",
+          "description": "Each Safari Zone section is its own encounter area instead of one zone-wide encounter.",
+          "category": "softener",
+          "default": true
+      },
+      {
+          "key": "allowTradeEvolutions",
+          "label": "Allow trade evolutions",
+          "description": "Trading away and back solely to evolve (Kadabra, Machoke, etc.) is allowed.",
+          "category": "softener",
+          "default": true
+      },
+      {
+          "key": "slowStart",
+          "label": "Slow start",
+          "description": "Core encounter/death rules do not apply until the player can catch Pokémon (and often until after the first rival fight).",
+          "category": "softener",
+          "default": false
+      }
+  ]
+}

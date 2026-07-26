@@ -63,4 +63,56 @@ describe('ApiClient', () => {
     const headers = vi.mocked(fetch).mock.calls[0][1].headers
     expect(headers.get('x-api-key')).toBe('nuz_testkey')
   })
+
+  it('lists runs from GET /api/runs', async () => {
+    const store = useApiKeyStore()
+    await store.setApiKey('nuz_testkey')
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }))
+
+    const client = new ApiClient('http://localhost:3000')
+    await client.listRuns()
+
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/runs',
+      expect.objectContaining({ method: 'GET' }),
+    )
+  })
+
+  it('PUTs run updates and DELETEs runs', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 1 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 1 }), { status: 200 }))
+    const client = new ApiClient('http://localhost:3000')
+
+    await client.updateRun(1, { notes: 'hi' })
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/runs/1',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ notes: 'hi' }),
+      }),
+    )
+
+    await client.deleteRun(1)
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/runs/1',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('posts encounters under a run', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ id: 9 }), { status: 201 }))
+    const client = new ApiClient('http://localhost:3000')
+    const body = { routeId: 2, pokemonId: 16, nickname: 'Birdy', status: 0 }
+
+    await client.createEncounter(3, body)
+
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/runs/3/encounters',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    )
+  })
 })

@@ -94,9 +94,27 @@ export class ApiClient {
     return this.request('POST', path, { ...options, body })
   }
 
+  put(path, body, options = {}) {
+    return this.request('PUT', path, { ...options, body })
+  }
+
+  delete(path, options = {}) {
+    return this.request('DELETE', path, options)
+  }
+
   /** GET /api/auth/me — verify access key and return current user */
   getMe() {
     return this.get('/api/auth/me')
+  }
+
+  /** GET /api/runs — list runs for the current user */
+  listRuns() {
+    return this.get('/api/runs')
+  }
+
+  /** GET /api/runs/rules — rule catalog for create/detail UI */
+  getRunRulesCatalog() {
+    return this.get('/api/runs/rules')
   }
 
   /** POST /api/runs — create a new run */
@@ -107,6 +125,58 @@ export class ApiClient {
   /** GET /api/runs/:id — fetch a run by id */
   getRun(id) {
     return this.get(`/api/runs/${encodeURIComponent(id)}`)
+  }
+
+  /** PUT /api/runs/:id — update run fields / rules */
+  updateRun(id, body) {
+    return this.put(`/api/runs/${encodeURIComponent(id)}`, body)
+  }
+
+  /** DELETE /api/runs/:id — soft-delete (archive) a run */
+  deleteRun(id) {
+    return this.delete(`/api/runs/${encodeURIComponent(id)}`)
+  }
+
+  /** GET /api/runs/:id/encounters */
+  listEncounters(runId) {
+    return this.get(`/api/runs/${encodeURIComponent(runId)}/encounters`)
+  }
+
+  /** POST /api/runs/:id/encounters */
+  createEncounter(runId, body) {
+    return this.post(`/api/runs/${encodeURIComponent(runId)}/encounters`, body)
+  }
+
+  /** PUT /api/runs/:id/encounters/:encounterId */
+  updateEncounter(runId, encounterId, body) {
+    return this.put(
+      `/api/runs/${encodeURIComponent(runId)}/encounters/${encodeURIComponent(encounterId)}`,
+      body,
+    )
+  }
+
+  /** DELETE /api/runs/:id/encounters/:encounterId — soft-delete */
+  deleteEncounter(runId, encounterId) {
+    return this.delete(
+      `/api/runs/${encodeURIComponent(runId)}/encounters/${encodeURIComponent(encounterId)}`,
+    )
+  }
+
+  /** GET /api/pokemon?generation= */
+  listPokemon({ generation } = {}) {
+    const params = new URLSearchParams()
+    if (generation != null) params.set('generation', String(generation))
+    const qs = params.toString()
+    return this.get(`/api/pokemon${qs ? `?${qs}` : ''}`)
+  }
+
+  /** GET /api/routes?gameId= */
+  listRoutes({ gameId, encounterType } = {}) {
+    const params = new URLSearchParams()
+    if (gameId != null) params.set('gameId', String(gameId))
+    if (encounterType) params.set('encounterType', encounterType)
+    const qs = params.toString()
+    return this.get(`/api/routes${qs ? `?${qs}` : ''}`)
   }
 }
 

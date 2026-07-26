@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildRunUpdates, validateRunInput } from '../runService.js'
+import { buildRunUpdates, toRunResponse, validateRunInput } from '../runService.js'
+import { defaultRunRules } from '../runRules.js'
 import { gameIds, runStatuses } from '../../models/Run.js'
 
 describe('buildRunUpdates', () => {
@@ -28,6 +29,29 @@ describe('buildRunUpdates', () => {
 
     assert.equal(updates.startDate, 1_705_276_800)
     assert.equal(updates.endDate, 1_700_000_000)
+  })
+
+  it('normalizes rules onto defaults when rules are provided', () => {
+    const updates = buildRunUpdates({ rules: { setMode: true } })
+    assert.equal(updates.rules.setMode, true)
+    assert.equal(updates.rules.permadeath, true)
+    assert.equal(updates.rules.levelCap, false)
+  })
+})
+
+describe('toRunResponse', () => {
+  it('includes default rules when missing on legacy docs', () => {
+    const response = toRunResponse({
+      id: 1,
+      name: 'Legacy',
+      startDate: 1,
+      status: 0,
+      userId: 1,
+      gameId: gameIds.red,
+      created: 1,
+      updated: 1,
+    })
+    assert.deepEqual(response.rules, defaultRunRules())
   })
 })
 
@@ -74,6 +98,13 @@ describe('validateRunInput', () => {
   it('allows valid status on partial update', () => {
     assert.doesNotThrow(() =>
       validateRunInput({ status: runStatuses.active }, { partial: true }),
+    )
+  })
+
+  it('rejects unknown rule keys', () => {
+    assert.throws(
+      () => validateRunInput({ rules: { notARule: true } }, { partial: true }),
+      (error) => error.statusCode === 400 && /unknown rule/i.test(error.message),
     )
   })
 })

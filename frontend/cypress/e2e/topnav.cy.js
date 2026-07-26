@@ -1,5 +1,4 @@
-describe('Settings access key', () => {
-
+describe('Top navigation', () => {
   const navLinks = [
     {
       label: 'Home',

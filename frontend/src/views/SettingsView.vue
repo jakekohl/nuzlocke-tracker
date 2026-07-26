@@ -169,12 +169,18 @@ async function verifyConnection() {
 <style scoped>
 .settings {
   max-width: 32rem;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  margin: 1.5rem auto 2rem;
+  padding: 0 max(1rem, env(safe-area-inset-right, 0)) 0 max(1rem, env(safe-area-inset-left, 0));
   font-family:
     system-ui,
     -apple-system,
     sans-serif;
+}
+
+@media (min-width: 40rem) {
+  .settings {
+    margin-top: 2rem;
+  }
 }
 
 .lede {
@@ -229,12 +235,22 @@ async function verifyConnection() {
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
   padding: 0.5rem 1rem;
   border: 1px solid #ccc;
   border-radius: 0.375rem;
   background: #fff;
   cursor: pointer;
   font: inherit;
+}
+
+@media (max-width: 39.99rem) {
+  .actions .btn {
+    flex: 1 1 100%;
+  }
 }
 
 .btn:disabled {
@@ -254,7 +270,10 @@ async function verifyConnection() {
 
 .modal {
   width: min(100% - 2rem, 24rem);
+  max-height: min(90dvh, 100% - 2rem);
+  margin: auto;
   padding: 0;
+  overflow: auto;
   border: none;
   border-radius: 0.5rem;
   box-shadow: 0 1rem 2rem rgb(0 0 0 / 20%);
@@ -289,17 +308,25 @@ async function verifyConnection() {
 
 .field__input {
   width: 100%;
-  box-sizing: border-box;
+  min-height: 2.75rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid #ccc;
   border-radius: 0.375rem;
   font: inherit;
+  font-size: 1rem;
 }
 
 .modal__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1.25rem;
+}
+
+@media (max-width: 39.99rem) {
+  .modal__actions .btn {
+    flex: 1 1 calc(50% - 0.25rem);
+  }
 }
 </style>

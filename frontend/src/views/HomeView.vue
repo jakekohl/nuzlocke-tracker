@@ -45,11 +45,18 @@ import { RouterLink } from 'vue-router'
 .home {
   max-width: 48rem;
   margin: 0 auto;
-  padding: 2.5rem 1rem 3rem;
+  padding: 1.5rem max(1rem, env(safe-area-inset-right, 0)) 3rem
+    max(1rem, env(safe-area-inset-left, 0));
   font-family:
     system-ui,
     -apple-system,
     sans-serif;
+}
+
+@media (min-width: 40rem) {
+  .home {
+    padding-top: 2.5rem;
+  }
 }
 
 .hero {
@@ -83,12 +90,16 @@ import { RouterLink } from 'vue-router'
 
 .hero__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 0.75rem;
 }
 
 .btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
   padding: 0.625rem 1.25rem;
   border: 1px solid #ccc;
   border-radius: 0.375rem;
@@ -98,6 +109,13 @@ import { RouterLink } from 'vue-router'
   font: inherit;
   font-weight: 500;
   text-decoration: none;
+}
+
+@media (max-width: 39.99rem) {
+  .hero__actions .btn {
+    width: 100%;
+    max-width: 20rem;
+  }
 }
 
 .btn--primary {

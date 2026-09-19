@@ -5,6 +5,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import RunDetailView from '../views/RunDetailView.vue'
 import { useApiKeyStore } from '../stores/apiKey'
+import { PrimeVueTestPlugin } from './primeVueTestPlugin'
 
 vi.mock('@/services/ApiClient', () => ({
   apiClient: {
@@ -69,6 +70,7 @@ const sampleRules = {
       default: false,
     },
   ],
+  presets: [],
 }
 
 function makeRouter() {
@@ -112,6 +114,17 @@ function mockHappyPathApis() {
   })
 }
 
+function mountPage(pinia, router) {
+  return mount(RunDetailView, {
+    global: { plugins: [pinia, router, PrimeVueTestPlugin] },
+  })
+}
+
+async function openTab(wrapper, testId) {
+  await wrapper.find(`[data-test="${testId}"]`).trigger('click')
+  await flushPromises()
+}
+
 describe('RunDetailView', () => {
   let pinia
   let router
@@ -123,12 +136,6 @@ describe('RunDetailView', () => {
     await router.push('/runs/3')
     await router.isReady()
     vi.clearAllMocks()
-    HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
-      this.setAttribute('open', '')
-    })
-    HTMLDialogElement.prototype.close = vi.fn(function close() {
-      this.removeAttribute('open')
-    })
     vi.stubGlobal(
       'confirm',
       vi.fn(() => true),
@@ -136,30 +143,31 @@ describe('RunDetailView', () => {
   })
 
   it('prompts for an access key when none is configured', async () => {
-    const wrapper = mount(RunDetailView, {
-      global: { plugins: [pinia, router] },
-    })
+    const wrapper = mountPage(pinia, router)
     await flushPromises()
 
     expect(wrapper.find('[data-test="run-detail-error"]').text()).toMatch(/access key/i)
     expect(apiClient.getRun).not.toHaveBeenCalled()
   })
 
-  it('renders editable details, rules, and encounters section', async () => {
+  it('renders location checklist, rules, and details', async () => {
     const store = useApiKeyStore()
     await store.setApiKey('nuz_test')
     mockHappyPathApis()
 
-    const wrapper = mount(RunDetailView, {
-      global: { plugins: [pinia, router] },
-    })
+    const wrapper = mountPage(pinia, router)
     await flushPromises()
 
     expect(wrapper.find('[data-test="run-detail-name"]').text()).toBe('Blue Softcore')
+    expect(wrapper.find('[data-test="run-locations"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="location-row-2"]').text()).toContain('Route 1')
+
+    await openTab(wrapper, 'run-tab-details')
     expect(wrapper.find('[data-test="run-edit-name"]').element.value).toBe('Blue Softcore')
+
+    await openTab(wrapper, 'run-tab-rules')
     expect(wrapper.find('[data-test="run-rule-setMode"]').element.checked).toBe(false)
     expect(wrapper.find('[data-test="run-rule-permadeath"]').element.checked).toBe(true)
-    expect(wrapper.find('[data-test="run-encounters-empty"]').exists()).toBe(true)
   })
 
   it('saves rule changes via updateRun', async () => {
@@ -172,10 +180,9 @@ describe('RunDetailView', () => {
       data: { ...sampleRun, rules: { ...sampleRun.rules, setMode: true } },
     })
 
-    const wrapper = mount(RunDetailView, {
-      global: { plugins: [pinia, router] },
-    })
+    const wrapper = mountPage(pinia, router)
     await flushPromises()
+    await openTab(wrapper, 'run-tab-rules')
 
     await wrapper.find('[data-test="run-rule-setMode"]').setValue(true)
     await wrapper.find('[data-test="run-button-save-rules"]').trigger('click')
@@ -200,9 +207,7 @@ describe('RunDetailView', () => {
     })
     const pushSpy = vi.spyOn(router, 'push')
 
-    const wrapper = mount(RunDetailView, {
-      global: { plugins: [pinia, router] },
-    })
+    const wrapper = mountPage(pinia, router)
     await flushPromises()
 
     await wrapper.find('[data-test="run-button-archive"]').trigger('click')
@@ -230,9 +235,7 @@ describe('RunDetailView', () => {
     })
     vi.mocked(apiClient.listEncounters).mockResolvedValue({ ok: true, status: 200, data: [] })
 
-    const wrapper = mount(RunDetailView, {
-      global: { plugins: [pinia, router] },
-    })
+    const wrapper = mountPage(pinia, router)
     await flushPromises()
 
     expect(wrapper.find('[data-test="run-detail-error"]').text()).toMatch(/not found/i)

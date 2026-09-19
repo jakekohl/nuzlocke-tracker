@@ -24,6 +24,8 @@ html {
 
 body {
   margin: 0;
+  background: #f7f8fb;
+  color: #1a1a1a;
 }
 
 .app {

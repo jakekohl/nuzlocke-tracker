@@ -4,6 +4,7 @@ import {
   buildEncounterUpdates,
   validateEncounterInput,
   encounterStatuses,
+  shouldWarnDupesClause,
 } from '../encounterService.js'
 
 describe('validateEncounterInput', () => {
@@ -39,10 +40,61 @@ describe('validateEncounterInput', () => {
     )
   })
 
+  it('allows skipped encounters without pokemonId', () => {
+    assert.doesNotThrow(() =>
+      validateEncounterInput({
+        routeId: 2,
+        status: encounterStatuses.skipped,
+        nickname: '',
+      }),
+    )
+  })
+
   it('rejects invalid status', () => {
     assert.throws(
       () => validateEncounterInput({ ...valid, status: 99 }),
       (error) => error.statusCode === 400 && /status/i.test(error.message),
+    )
+  })
+})
+
+describe('shouldWarnDupesClause', () => {
+  const pidgey = { id: 16, evolutionFamilyId: 16 }
+  const owned = new Set([16])
+
+  it('warns when the family is already owned and dupes clause is on', () => {
+    assert.equal(
+      shouldWarnDupesClause({
+        runRules: { dupesClause: true, shinyClause: true },
+        isShiny: false,
+        pokemon: pidgey,
+        ownedFamilyIds: owned,
+      }),
+      true,
+    )
+  })
+
+  it('does not warn for shinies when shiny clause is on', () => {
+    assert.equal(
+      shouldWarnDupesClause({
+        runRules: { dupesClause: true, shinyClause: true },
+        isShiny: true,
+        pokemon: pidgey,
+        ownedFamilyIds: owned,
+      }),
+      false,
+    )
+  })
+
+  it('does not warn when dupes clause is off', () => {
+    assert.equal(
+      shouldWarnDupesClause({
+        runRules: { dupesClause: false },
+        isShiny: false,
+        pokemon: pidgey,
+        ownedFamilyIds: owned,
+      }),
+      false,
     )
   })
 })

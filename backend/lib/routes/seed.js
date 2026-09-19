@@ -2,15 +2,14 @@ import { requireBootstrap } from '../auth.js'
 import { seedReferenceData } from '../seedService.js'
 
 /**
- * Admin-only reference data seeding.
+ * Catalog sizes for Pokémon and locations (in-memory consts, not Mongo).
  * POST /api/seed  (x-bootstrap-secret)
  */
 export async function handleSeed(req, res, segments) {
   if (segments.length === 1 && req.method === 'POST') {
     if (!requireBootstrap(req, res)) return
 
-    const result = await seedReferenceData()
-    return res.status(200).json(result)
+    return res.status(200).json(seedReferenceData())
   }
 
   if (segments.length === 1) {

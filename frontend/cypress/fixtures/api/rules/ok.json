@@ -140,5 +140,59 @@
           "category": "softener",
           "default": false
       }
+  ],
+  "presets": [
+    {
+      "id": "standard",
+      "label": "Standard",
+      "rules": {
+        "firstEncounterOnly": true,
+        "permadeath": true,
+        "nicknameRequired": true,
+        "dupesClause": true,
+        "shinyClause": true,
+        "setMode": false,
+        "levelCap": false,
+        "blackoutIsFailure": true,
+        "giftPokemonAreEncounters": true,
+        "noOutsideTrading": true,
+        "noItemsInBattle": false,
+        "noHeldItems": false,
+        "noHealingItems": false,
+        "noMasterBall": false,
+        "noRareCandy": false,
+        "shinyImmuneToPermadeath": false,
+        "hmHelper": false,
+        "safariZonePerSection": true,
+        "allowTradeEvolutions": true,
+        "slowStart": false
+      }
+    },
+    {
+      "id": "hardcore",
+      "label": "Hardcore",
+      "rules": {
+        "firstEncounterOnly": true,
+        "permadeath": true,
+        "nicknameRequired": true,
+        "dupesClause": true,
+        "shinyClause": true,
+        "setMode": true,
+        "levelCap": true,
+        "blackoutIsFailure": true,
+        "giftPokemonAreEncounters": true,
+        "noOutsideTrading": true,
+        "noItemsInBattle": true,
+        "noHeldItems": true,
+        "noHealingItems": false,
+        "noMasterBall": false,
+        "noRareCandy": false,
+        "shinyImmuneToPermadeath": false,
+        "hmHelper": false,
+        "safariZonePerSection": true,
+        "allowTradeEvolutions": true,
+        "slowStart": false
+      }
+    }
   ]
 }

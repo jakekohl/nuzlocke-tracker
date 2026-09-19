@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "slug": "red",
+    "label": "Pokémon Red",
+    "generation": 1,
+    "locationCount": 53
+  },
+  {
+    "id": 2,
+    "slug": "blue",
+    "label": "Pokémon Blue",
+    "generation": 1,
+    "locationCount": 53
+  },
+  {
+    "id": 9,
+    "slug": "emerald",
+    "label": "Pokémon Emerald",
+    "generation": 3,
+    "locationCount": 40
+  }
+]

@@ -52,7 +52,6 @@ const router = createRouter({
 
 export default router
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   document.title = to.meta.title || 'Nuzlocke Tracker'
-  next()
 })

@@ -227,3 +227,22 @@ export function normalizeRunRules(input, { partial = false } = {}) {
 export function getRulesCatalog() {
   return RULE_DEFINITIONS.map((rule) => ({ ...rule }))
 }
+
+export function getRulePresets() {
+  const standard = defaultRunRules()
+  return [
+    { id: 'standard', label: 'Standard', rules: standard },
+    {
+      id: 'hardcore',
+      label: 'Hardcore',
+      rules: {
+        ...standard,
+        setMode: true,
+        levelCap: true,
+        noItemsInBattle: true,
+        noHeldItems: true,
+        blackoutIsFailure: true,
+      },
+    },
+  ]
+}

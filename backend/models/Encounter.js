@@ -6,6 +6,8 @@ export const encounterStatuses = {
   boxed: 2,
   /** First encounter fled / fainted / failed catch — area used up */
   failed: 3,
+  /** Player opted out of this area */
+  skipped: 4,
 }
 
 const encounterSchema = new mongoose.Schema(

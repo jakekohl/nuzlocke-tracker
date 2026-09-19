@@ -2,6 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   defaultRunRules,
+  getRulePresets,
   getRulesCatalog,
   normalizeRunRules,
   RULE_KEYS,
@@ -45,6 +46,18 @@ describe('normalizeRunRules', () => {
   it('partial mode only returns provided keys', () => {
     const patch = normalizeRunRules({ setMode: true }, { partial: true })
     assert.deepEqual(patch, { setMode: true })
+  })
+})
+
+describe('getRulePresets', () => {
+  it('includes standard defaults and a stricter hardcore preset', () => {
+    const presets = getRulePresets()
+    const standard = presets.find((p) => p.id === 'standard')
+    const hardcore = presets.find((p) => p.id === 'hardcore')
+    assert.equal(standard.rules.setMode, false)
+    assert.equal(hardcore.rules.setMode, true)
+    assert.equal(hardcore.rules.noItemsInBattle, true)
+    assert.equal(hardcore.rules.permadeath, true)
   })
 })
 

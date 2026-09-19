@@ -1,6 +1,7 @@
 import { getPathSegments } from './requestParams.js'
 import { handleAuth } from './routes/auth.js'
 import { handleGameRoutes } from './routes/gameRoutes.js'
+import { handleGames } from './routes/games.js'
 import { handlePokemon } from './routes/pokemon.js'
 import { handleRuns } from './routes/runs.js'
 import { handleSeed } from './routes/seed.js'
@@ -26,6 +27,8 @@ export async function dispatch(req, res) {
       return handleRuns(req, res, segments)
     case 'pokemon':
       return handlePokemon(req, res, segments)
+    case 'games':
+      return handleGames(req, res, segments)
     case 'routes':
       return handleGameRoutes(req, res, segments)
     case 'seed':

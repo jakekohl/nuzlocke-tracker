@@ -1,4 +1,4 @@
-/** Mirrors backend `gameIds` in models/Run.js — labels for UI. */
+/** Mirrors backend `gameIds` in lib/games.js — labels for UI fallback. */
 export const gameIds = {
   red: 1,
   blue: 2,
@@ -35,6 +35,8 @@ export const gameIds = {
   violet: 33,
   legendsarceus: 34,
   legendsza: 35,
+  brilliantdiamond: 36,
+  shiningpearl: 37,
 }
 
 export const gameLabels = {
@@ -73,14 +75,63 @@ export const gameLabels = {
   [gameIds.violet]: 'Pokémon Violet',
   [gameIds.legendsarceus]: 'Pokémon Legends: Arceus',
   [gameIds.legendsza]: 'Pokémon Legends: Z-A',
+  [gameIds.brilliantdiamond]: 'Pokémon Brilliant Diamond',
+  [gameIds.shiningpearl]: 'Pokémon Shining Pearl',
 }
 
-/** Games with route/reference data seeded today. */
-export const supportedGames = [
-  { id: gameIds.red, label: gameLabels[gameIds.red] },
-  { id: gameIds.blue, label: gameLabels[gameIds.blue] },
-]
+export const gameGenerations = {
+  [gameIds.red]: 1,
+  [gameIds.blue]: 1,
+  [gameIds.yellow]: 1,
+  [gameIds.gold]: 2,
+  [gameIds.silver]: 2,
+  [gameIds.crystal]: 2,
+  [gameIds.ruby]: 3,
+  [gameIds.sapphire]: 3,
+  [gameIds.emerald]: 3,
+  [gameIds.firered]: 3,
+  [gameIds.leafgreen]: 3,
+  [gameIds.diamond]: 4,
+  [gameIds.pearl]: 4,
+  [gameIds.platinum]: 4,
+  [gameIds.heartgold]: 4,
+  [gameIds.soulsilver]: 4,
+  [gameIds.black]: 5,
+  [gameIds.white]: 5,
+  [gameIds.black2]: 5,
+  [gameIds.white2]: 5,
+  [gameIds.x]: 6,
+  [gameIds.y]: 6,
+  [gameIds.omegaruby]: 6,
+  [gameIds.alphasapphire]: 6,
+  [gameIds.sun]: 7,
+  [gameIds.moon]: 7,
+  [gameIds.ultrasun]: 7,
+  [gameIds.ultramoon]: 7,
+  [gameIds.letsgo]: 7,
+  [gameIds.sword]: 8,
+  [gameIds.shield]: 8,
+  [gameIds.legendsarceus]: 8,
+  [gameIds.brilliantdiamond]: 8,
+  [gameIds.shiningpearl]: 8,
+  [gameIds.scarlet]: 9,
+  [gameIds.violet]: 9,
+  [gameIds.legendsza]: 9,
+}
+
+export const fallbackGames = Object.entries(gameLabels).map(([id, label]) => ({
+  id: Number(id),
+  label,
+  generation: gameGenerations[Number(id)],
+}))
+
+/** Games shown before /api/games loads. */
+export const supportedGames = fallbackGames
 
 export function formatGame(gameId) {
   return gameLabels[Number(gameId)] ?? `Game ${gameId}`
+}
+
+export function generationForGame(gameId) {
+  return gameGenerations[Number(gameId)] ?? 1
 }

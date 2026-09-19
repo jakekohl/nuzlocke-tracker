@@ -115,4 +115,23 @@ describe('ApiClient', () => {
       }),
     )
   })
+
+  it('lists games and pokemon with maxGeneration', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
+    const client = new ApiClient('http://localhost:3000')
+
+    await client.listGames()
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/games',
+      expect.objectContaining({ method: 'GET' }),
+    )
+
+    await client.listPokemon({ maxGeneration: 2 })
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/pokemon?maxGeneration=2',
+      expect.objectContaining({ method: 'GET' }),
+    )
+  })
 })

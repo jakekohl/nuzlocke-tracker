@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import { defaultRunRules, RULE_KEYS } from '../lib/runRules.js'
+import { gameIds as catalogGameIds } from '../lib/games.js'
 
 const rulesShape = Object.fromEntries(
   Object.values(RULE_KEYS).map((key) => [key, { type: Boolean, required: true }]),
@@ -29,46 +30,10 @@ const runSchema = new mongoose.Schema(
 
 runSchema.index({ userId: 1, inactive: 1 })
 
-export const gameIds = {
-  red: 1,
-  blue: 2,
-  yellow: 3,
-  gold: 4,
-  silver: 5,
-  crystal: 6,
-  ruby: 7,
-  sapphire: 8,
-  emerald: 9,
-  firered: 10,
-  leafgreen: 11,
-  diamond: 12,
-  pearl: 13,
-  platinum: 14,
-  heartgold: 15,
-  soulsilver: 16,
-  black: 17,
-  white: 18,
-  black2: 19,
-  white2: 20,
-  x: 21,
-  y: 22,
-  alphasapphire: 23,
-  omegaruby: 24,
-  sun: 25,
-  moon: 26,
-  ultrasun: 27,
-  ultramoon: 28,
-  letsgo: 29,
-  sword: 30,
-  shield: 31,
-  scarlet: 32,
-  violet: 33,
-  legendsarceus: 34,
-  legendsza: 35,
-}
+export const gameIds = catalogGameIds
 
-/** Games currently supported for route / encounter reference data. */
-export const supportedGameIds = new Set([gameIds.red, gameIds.blue])
+/** Games with curated location checklists. */
+export const supportedGameIds = new Set(Object.values(catalogGameIds))
 
 export const runStatuses = {
   notStarted: 0,

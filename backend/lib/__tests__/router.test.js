@@ -63,6 +63,12 @@ describe('dispatch', () => {
     assert.equal(res.statusCode, 401)
   })
 
+  it('returns 401 for GET /api/games without key', async () => {
+    const res = mockRes()
+    await dispatch({ method: 'GET', query: { path: ['games'] }, headers: {}, url: '/api/games' }, res)
+    assert.equal(res.statusCode, 401)
+  })
+
   it('returns 401 for GET /api/pokemon without key', async () => {
     const res = mockRes()
     await dispatch(

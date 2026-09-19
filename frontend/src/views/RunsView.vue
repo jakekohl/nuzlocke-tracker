@@ -3,33 +3,54 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useApiKeyStore } from '@/stores/apiKey'
 import { apiClient } from '@/services/ApiClient'
-import { supportedGames, formatGame, gameIds } from '@/constants/games'
+import { fallbackGames, formatGame, gameIds } from '@/constants/games'
 import { formatRunStatus, runStatuses } from '@/constants/runStatuses'
 import { formatUnixDate, todayIsoDate } from '@/lib/dates'
+import { gamesGroupedByGeneration } from '@/lib/gamesUi'
 
 const apiKeyStore = useApiKeyStore()
 const router = useRouter()
 
 const runs = ref([])
+const games = ref(fallbackGames)
+const presets = ref([])
 const loading = ref(false)
 const error = ref('')
 const creating = ref(false)
 const createError = ref('')
-const dialogRef = ref(null)
+const createOpen = ref(false)
 
 const form = ref({
   name: '',
   gameId: gameIds.red,
   startDate: todayIsoDate(),
   status: runStatuses.notStarted,
+  presetId: 'standard',
 })
 
 const hasKey = computed(() => apiKeyStore.isConfigured)
 const isEmpty = computed(() => !loading.value && !error.value && runs.value.length === 0)
+const groupedGames = computed(() => gamesGroupedByGeneration(games.value))
+const selectedPreset = computed(
+  () => presets.value.find((preset) => preset.id === form.value.presetId) ?? null,
+)
 
 function apiMessage(result, fallback) {
   if (typeof result.data === 'object' && result.data?.message) return result.data.message
   return fallback
+}
+
+async function loadGamesAndRules() {
+  const [gamesResult, rulesResult] = await Promise.all([
+    apiClient.listGames(),
+    apiClient.getRunRulesCatalog(),
+  ])
+  if (gamesResult.ok && Array.isArray(gamesResult.data) && gamesResult.data.length) {
+    games.value = gamesResult.data
+  }
+  if (rulesResult.ok && Array.isArray(rulesResult.data?.presets)) {
+    presets.value = rulesResult.data.presets
+  }
 }
 
 async function loadRuns() {
@@ -52,6 +73,7 @@ async function loadRuns() {
       return
     }
     runs.value = Array.isArray(result.data) ? result.data : []
+    await loadGamesAndRules()
   } catch (err) {
     const detail = err instanceof Error ? err.message : ''
     error.value = detail
@@ -66,15 +88,12 @@ function openCreate() {
   createError.value = ''
   form.value = {
     name: '',
-    gameId: gameIds.red,
+    gameId: games.value[0]?.id ?? gameIds.red,
     startDate: todayIsoDate(),
     status: runStatuses.notStarted,
+    presetId: 'standard',
   }
-  dialogRef.value?.showModal()
-}
-
-function closeCreate() {
-  dialogRef.value?.close()
+  createOpen.value = true
 }
 
 async function submitCreate() {
@@ -87,17 +106,21 @@ async function submitCreate() {
 
   creating.value = true
   try {
-    const result = await apiClient.createRun({
+    const body = {
       name,
       gameId: Number(form.value.gameId),
       startDate: form.value.startDate,
       status: Number(form.value.status),
-    })
+    }
+    if (selectedPreset.value?.rules) {
+      body.rules = selectedPreset.value.rules
+    }
+    const result = await apiClient.createRun(body)
     if (!result.ok) {
       createError.value = apiMessage(result, `Could not create run (${result.status}).`)
       return
     }
-    closeCreate()
+    createOpen.value = false
     await router.push({ name: 'run-detail', params: { id: result.data.id } })
   } catch (err) {
     const detail = err instanceof Error ? err.message : ''
@@ -115,17 +138,14 @@ onMounted(loadRuns)
     <header class="page-header">
       <div>
         <h1>Runs</h1>
-        <p class="lede">Your Nuzlocke playthroughs — start a new attempt or open an existing one.</p>
+        <p class="lede">Start a Nuzlocke for any mainline game, then fill in the location checklist as you go.</p>
       </div>
-      <button
-        type="button"
-        class="btn btn--primary"
+      <Button
+        label="New run"
         data-test="runs-button-new"
         :disabled="!hasKey"
         @click="openCreate"
-      >
-        New run
-      </button>
+      />
     </header>
 
     <p v-if="loading" class="state" data-test="runs-loading">Loading runs…</p>
@@ -136,7 +156,7 @@ onMounted(loadRuns)
       </RouterLink>
     </p>
     <p v-else-if="isEmpty" class="state" data-test="runs-empty">
-      No runs yet. Create one to start tracking Red or Blue.
+      No runs yet. Create one to start tracking a mainline playthrough.
     </p>
 
     <ul v-else class="run-list" data-test="runs-list">
@@ -156,10 +176,14 @@ onMounted(loadRuns)
       </li>
     </ul>
 
-    <dialog ref="dialogRef" class="modal" data-test="runs-create-dialog" @cancel.prevent="closeCreate">
+    <Dialog
+      v-model:visible="createOpen"
+      modal
+      header="New run"
+      data-test="runs-create-dialog"
+    >
       <form class="modal__form" @submit.prevent="submitCreate">
-        <h2>New run</h2>
-        <p class="modal__hint">Red and Blue are supported first. Rules default to a standard Nuzlocke.</p>
+        <p class="modal__hint">Pick a game and a rules preset. You can tweak clauses on the run page.</p>
 
         <label class="field" for="run-name">Name</label>
         <input
@@ -173,10 +197,17 @@ onMounted(loadRuns)
         />
 
         <label class="field" for="run-game">Game</label>
-        <select id="run-game" v-model.number="form.gameId" class="field__input" data-test="run-game-select">
-          <option v-for="game in supportedGames" :key="game.id" :value="game.id">
-            {{ game.label }}
-          </option>
+        <select
+          id="run-game"
+          v-model.number="form.gameId"
+          class="field__input"
+          data-test="run-game-select"
+        >
+          <optgroup v-for="group in groupedGames" :key="group.generation" :label="group.label">
+            <option v-for="game in group.games" :key="game.id" :value="game.id">
+              {{ game.label }}
+            </option>
+          </optgroup>
         </select>
 
         <label class="field" for="run-start">Start date</label>
@@ -189,31 +220,45 @@ onMounted(loadRuns)
           required
         />
 
+        <fieldset class="preset-fieldset">
+          <legend>Rules preset</legend>
+          <label class="preset">
+            <input v-model="form.presetId" type="radio" value="standard" data-test="run-preset-standard" />
+            Standard
+          </label>
+          <label class="preset">
+            <input v-model="form.presetId" type="radio" value="hardcore" data-test="run-preset-hardcore" />
+            Hardcore
+          </label>
+        </fieldset>
+
         <p v-if="createError" class="state state--error" role="alert" data-test="runs-create-error">
           {{ createError }}
         </p>
 
         <div class="modal__actions">
-          <button type="button" class="btn" data-test="runs-create-cancel" @click="closeCreate">
-            Cancel
-          </button>
-          <button
+          <Button
+            type="button"
+            label="Cancel"
+            severity="secondary"
+            data-test="runs-create-cancel"
+            @click="createOpen = false"
+          />
+          <Button
             type="submit"
-            class="btn btn--primary"
+            label="Create run"
             data-test="runs-create-submit"
-            :disabled="creating"
-          >
-            {{ creating ? 'Creating…' : 'Create run' }}
-          </button>
+            :loading="creating"
+          />
         </div>
       </form>
-    </dialog>
+    </Dialog>
   </main>
 </template>
 
 <style scoped>
 .runs {
-  max-width: 40rem;
+  max-width: 44rem;
   margin: 2rem auto;
   padding: 0 1rem 3rem;
   font-family:
@@ -320,54 +365,12 @@ onMounted(loadRuns)
   color: #666;
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.375rem;
-  background: #fff;
-  cursor: pointer;
-  font: inherit;
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.btn--primary {
-  border-color: #1976d2;
-  background: #1976d2;
-  color: #fff;
-}
-
-.btn--primary:hover:not(:disabled) {
-  background: #1565c0;
-}
-
-.modal {
-  width: min(100% - 2rem, 24rem);
-  padding: 0;
-  border: none;
-  border-radius: 0.5rem;
-  box-shadow: 0 1rem 2rem rgb(0 0 0 / 20%);
-}
-
-.modal::backdrop {
-  background: rgb(0 0 0 / 45%);
-}
-
 .modal__form {
-  padding: 1.25rem;
-}
-
-.modal__form h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.25rem;
+  display: grid;
 }
 
 .modal__hint {
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   font-size: 0.875rem;
   color: #555;
   line-height: 1.4;
@@ -387,6 +390,22 @@ onMounted(loadRuns)
   border: 1px solid #ccc;
   border-radius: 0.375rem;
   font: inherit;
+}
+
+.preset-fieldset {
+  margin: 1rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #eee;
+  border-radius: 0.5rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.preset {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.9rem;
 }
 
 .modal__actions {

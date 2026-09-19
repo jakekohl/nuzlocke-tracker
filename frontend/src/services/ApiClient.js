@@ -162,12 +162,18 @@ export class ApiClient {
     )
   }
 
-  /** GET /api/pokemon?generation= */
-  listPokemon({ generation } = {}) {
+  /** GET /api/pokemon?generation=&maxGeneration= */
+  listPokemon({ generation, maxGeneration } = {}) {
     const params = new URLSearchParams()
     if (generation != null) params.set('generation', String(generation))
+    if (maxGeneration != null) params.set('maxGeneration', String(maxGeneration))
     const qs = params.toString()
     return this.get(`/api/pokemon${qs ? `?${qs}` : ''}`)
+  }
+
+  /** GET /api/games */
+  listGames() {
+    return this.get('/api/games')
   }
 
   /** GET /api/routes?gameId= */

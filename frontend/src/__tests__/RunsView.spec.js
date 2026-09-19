@@ -5,11 +5,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import RunsView from '../views/RunsView.vue'
 import { useApiKeyStore } from '../stores/apiKey'
+import { PrimeVueTestPlugin } from './primeVueTestPlugin'
 
 vi.mock('@/services/ApiClient', () => ({
   apiClient: {
     listRuns: vi.fn(),
     createRun: vi.fn(),
+    listGames: vi.fn(),
+    getRunRulesCatalog: vi.fn(),
   },
 }))
 
@@ -38,17 +41,17 @@ describe('RunsView', () => {
     await router.isReady()
     vi.mocked(apiClient.listRuns).mockReset()
     vi.mocked(apiClient.createRun).mockReset()
-    HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
-      this.setAttribute('open', '')
-    })
-    HTMLDialogElement.prototype.close = vi.fn(function close() {
-      this.removeAttribute('open')
+    vi.mocked(apiClient.listGames).mockResolvedValue({ ok: true, status: 200, data: [] })
+    vi.mocked(apiClient.getRunRulesCatalog).mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { rules: [], presets: [] },
     })
   })
 
   it('prompts for an access key when none is configured', async () => {
     const wrapper = mount(RunsView, {
-      global: { plugins: [pinia, router] },
+      global: { plugins: [pinia, router, PrimeVueTestPlugin] },
     })
     await flushPromises()
 
@@ -75,7 +78,7 @@ describe('RunsView', () => {
     })
 
     const wrapper = mount(RunsView, {
-      global: { plugins: [pinia, router] },
+      global: { plugins: [pinia, router, PrimeVueTestPlugin] },
     })
     await flushPromises()
 
@@ -90,7 +93,7 @@ describe('RunsView', () => {
     vi.mocked(apiClient.listRuns).mockResolvedValue({ ok: true, status: 200, data: [] })
 
     const wrapper = mount(RunsView, {
-      global: { plugins: [pinia, router] },
+      global: { plugins: [pinia, router, PrimeVueTestPlugin] },
     })
     await flushPromises()
 

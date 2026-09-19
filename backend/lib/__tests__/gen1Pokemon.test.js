@@ -2,7 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { gen1Pokemon } from '../../data/gen1Pokemon.js'
 
-describe('gen1Pokemon seed data', () => {
+describe('gen1Pokemon catalog', () => {
   it('includes all 151 Gen 1 Pokémon with generations and families', () => {
     assert.equal(gen1Pokemon.length, 151)
     assert.equal(gen1Pokemon[0].id, 1)

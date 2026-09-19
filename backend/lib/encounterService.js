@@ -1,7 +1,7 @@
 import Encounter, { encounterStatuses } from '../models/Encounter.js'
-import Pokemon from '../models/Pokemon.js'
-import Route from '../models/Route.js'
 import { getRunById } from './runService.js'
+import { getPokemonById } from './pokemonService.js'
+import { getRouteById } from './routeService.js'
 import { getNextId } from './apiHandler.js'
 import { toUnixTimestamp, unixNow } from './timestamps.js'
 
@@ -11,6 +11,23 @@ function httpError(statusCode, message) {
   const error = new Error(message)
   error.statusCode = statusCode
   return error
+}
+
+function isSpeciesOptional(status) {
+  return status === encounterStatuses.failed || status === encounterStatuses.skipped
+}
+
+/**
+ * Dupes clause is a warning, not a hard block.
+ * Shinies skip the warning when shinyClause is enabled.
+ */
+export function shouldWarnDupesClause({ runRules, isShiny, pokemon, ownedFamilyIds }) {
+  if (!runRules?.dupesClause) return false
+  if (!pokemon?.evolutionFamilyId) return false
+  if (isShiny && runRules.shinyClause) return false
+  return ownedFamilyIds instanceof Set
+    ? ownedFamilyIds.has(pokemon.evolutionFamilyId)
+    : Boolean(ownedFamilyIds?.has?.(pokemon.evolutionFamilyId))
 }
 
 export function toEncounterResponse(doc) {
@@ -51,8 +68,8 @@ export function validateEncounterInput(data, { partial = false, runRules } = {})
       : null
 
   if (!partial || data.pokemonId !== undefined) {
-    const isFailed = status === encounterStatuses.failed
-    if (!isFailed && (data.pokemonId == null || data.pokemonId === '')) {
+    const isOptionalSpecies = isSpeciesOptional(status)
+    if (!isOptionalSpecies && (data.pokemonId == null || data.pokemonId === '')) {
       if (!partial) throw httpError(400, 'pokemonId is required')
     }
     if (data.pokemonId != null && data.pokemonId !== '') {
@@ -83,7 +100,7 @@ export function validateEncounterInput(data, { partial = false, runRules } = {})
 
   if (runRules?.nicknameRequired) {
     const effectiveStatus = status ?? encounterStatuses.alive
-    if (effectiveStatus !== encounterStatuses.failed) {
+    if (effectiveStatus !== encounterStatuses.failed && effectiveStatus !== encounterStatuses.skipped) {
       if (!partial || data.nickname !== undefined) {
         if (typeof data.nickname !== 'string' || !data.nickname.trim()) {
           throw httpError(400, 'nickname is required by this run’s rules')
@@ -93,8 +110,8 @@ export function validateEncounterInput(data, { partial = false, runRules } = {})
   }
 }
 
-async function assertRouteForGame(routeId, gameId) {
-  const route = await Route.findOne({ id: Number(routeId) }).lean()
+function assertRouteForGame(routeId, gameId) {
+  const route = getRouteById(routeId)
   if (!route) throw httpError(400, 'Route not found')
   if (!route.gameIds?.includes(Number(gameId))) {
     throw httpError(400, 'Route is not valid for this run’s game')
@@ -102,9 +119,9 @@ async function assertRouteForGame(routeId, gameId) {
   return route
 }
 
-async function assertPokemonExists(pokemonId) {
+function assertPokemonExists(pokemonId) {
   if (pokemonId == null) return null
-  const pokemon = await Pokemon.findOne({ id: Number(pokemonId) }).lean()
+  const pokemon = getPokemonById(pokemonId)
   if (!pokemon) throw httpError(400, 'Pokémon not found')
   return pokemon
 }
@@ -137,12 +154,12 @@ export async function createEncounter(runId, userId, data) {
 
   const status = data.status != null ? Number(data.status) : encounterStatuses.alive
   const pokemonId =
-    status === encounterStatuses.failed && (data.pokemonId == null || data.pokemonId === '')
+    isSpeciesOptional(status) && (data.pokemonId == null || data.pokemonId === '')
       ? null
       : Number(data.pokemonId)
 
   await assertRouteForGame(data.routeId, run.gameId)
-  if (pokemonId != null) await assertPokemonExists(pokemonId)
+  const pokemon = pokemonId != null ? await assertPokemonExists(pokemonId) : null
 
   if (run.rules?.firstEncounterOnly) {
     const existing = await Encounter.findOne({
@@ -153,6 +170,19 @@ export async function createEncounter(runId, userId, data) {
     if (existing) {
       throw httpError(409, 'This run already has an encounter for that route')
     }
+  }
+
+  const ownedFamilyIds = await collectOwnedFamilyIds(runId)
+  const warnings = []
+  if (
+    shouldWarnDupesClause({
+      runRules: run.rules,
+      isShiny: Boolean(data.isShiny),
+      pokemon,
+      ownedFamilyIds,
+    })
+  ) {
+    warnings.push('dupesClause')
   }
 
   const now = unixNow()
@@ -175,7 +205,22 @@ export async function createEncounter(runId, userId, data) {
     inactive: undefined,
   })
 
-  return toEncounterResponse(doc)
+  return { ...toEncounterResponse(doc), warnings }
+}
+
+export async function collectOwnedFamilyIds(runId, { excludeEncounterId } = {}) {
+  const query = {
+    runId: Number(runId),
+    inactive: null,
+    pokemonId: { $ne: null },
+    status: { $in: [encounterStatuses.alive, encounterStatuses.boxed] },
+  }
+  if (excludeEncounterId != null) query.id = { $ne: Number(excludeEncounterId) }
+  const rows = await Encounter.find(query).lean()
+  const pokemonIds = [...new Set(rows.map((row) => row.pokemonId).filter(Boolean))]
+  if (!pokemonIds.length) return new Set()
+  const species = pokemonIds.map((id) => getPokemonById(id)).filter(Boolean)
+  return new Set(species.map((row) => row.evolutionFamilyId))
 }
 
 export function buildEncounterUpdates(data, { runRules } = {}, now = unixNow()) {

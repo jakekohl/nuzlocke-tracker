@@ -3,14 +3,16 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useApiKeyStore } from '@/stores/apiKey'
 import { apiClient } from '@/services/ApiClient'
-import { formatGame } from '@/constants/games'
+import { formatGame, generationForGame } from '@/constants/games'
 import { formatRunStatus, runStatusOptions, runStatuses } from '@/constants/runStatuses'
-import {
-  encounterStatuses,
-  encounterStatusOptions,
-  formatEncounterStatus,
-} from '@/constants/encounterStatuses'
+import { encounterStatuses } from '@/constants/encounterStatuses'
 import { formatUnixDate, todayIsoDate } from '@/lib/dates'
+import { shouldWarnDupes } from '@/lib/dupes'
+import RunStatsStrip from '@/components/RunStatsStrip.vue'
+import LocationChecklist from '@/components/LocationChecklist.vue'
+import PokemonRoster from '@/components/PokemonRoster.vue'
+import RulesEditor from '@/components/RulesEditor.vue'
+import EncounterDialog from '@/components/EncounterDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,6 +20,7 @@ const apiKeyStore = useApiKeyStore()
 
 const run = ref(null)
 const ruleCatalog = ref([])
+const rulePresets = ref([])
 const encounters = ref([])
 const pokemonOptions = ref([])
 const routeOptions = ref([])
@@ -29,66 +32,67 @@ const savingDetails = ref(false)
 const savingRules = ref(false)
 const deleting = ref(false)
 const addingEncounter = ref(false)
+const activeTab = ref('locations')
+const tabs = [
+  { id: 'locations', label: 'Locations', test: 'run-tab-locations' },
+  { id: 'team', label: 'Team', test: 'run-tab-team' },
+  { id: 'box', label: 'Box', test: 'run-tab-box' },
+  { id: 'graveyard', label: 'Graveyard', test: 'run-tab-graveyard' },
+  { id: 'rules', label: 'Rules', test: 'run-tab-rules' },
+  { id: 'details', label: 'Details', test: 'run-tab-details' },
+]
+const encounterDialogOpen = ref(false)
+const loggingRoute = ref(null)
 
 const editDetails = ref({ name: '', status: runStatuses.notStarted, notes: '', startDate: '' })
 const editRules = ref({})
 const encounterForm = ref(blankEncounterForm())
-const encounterDialog = ref(null)
 
 const runId = computed(() => route.params.id)
 const hasKey = computed(() => apiKeyStore.isConfigured)
 
 const pokemonById = computed(() => new Map(pokemonOptions.value.map((p) => [p.id, p])))
 const routeById = computed(() => new Map(routeOptions.value.map((r) => [r.id, r])))
-
-const sortedRules = computed(() =>
-  [...ruleCatalog.value].sort((a, b) => {
-    const order = { core: 0, optional: 1, hardcore: 2, softener: 3 }
-    return (order[a.category] ?? 9) - (order[b.category] ?? 9) || a.label.localeCompare(b.label)
-  }),
-)
-
-const RULE_CATEGORY_LABELS = {
-  core: 'Core',
-  optional: 'Optional',
-  hardcore: 'Hardcore',
-  softener: 'Softeners',
-}
-
-const rulesByCategory = computed(() => {
-  const groups = []
-  const byKey = new Map()
-  for (const rule of sortedRules.value) {
-    const category = rule.category || 'other'
-    if (!byKey.has(category)) {
-      const group = {
-        category,
-        label: RULE_CATEGORY_LABELS[category] ?? category,
-        rules: [],
-      }
-      byKey.set(category, group)
-      groups.push(group)
-    }
-    byKey.get(category).rules.push(rule)
+const encountersByRouteId = computed(() => {
+  const map = new Map()
+  for (const encounter of encounters.value) {
+    map.set(encounter.routeId, encounter)
   }
-  return groups
+  return map
 })
 
-const enabledRuleCount = computed(
-  () => Object.values(editRules.value).filter((value) => value === true).length,
+const remainingLocations = computed(
+  () => routeOptions.value.filter((area) => !encountersByRouteId.value.has(area.id)).length,
+)
+const aliveCount = computed(
+  () => encounters.value.filter((e) => e.status === encounterStatuses.alive).length,
+)
+const boxedCount = computed(
+  () => encounters.value.filter((e) => e.status === encounterStatuses.boxed).length,
+)
+const deadCount = computed(
+  () => encounters.value.filter((e) => e.status === encounterStatuses.dead).length,
+)
+const missedCount = computed(
+  () =>
+    encounters.value.filter(
+      (e) => e.status === encounterStatuses.failed || e.status === encounterStatuses.skipped,
+    ).length,
 )
 
-const usedRouteIds = computed(() => new Set(encounters.value.map((e) => e.routeId)))
-
-const availableRoutes = computed(() =>
-  routeOptions.value.filter(
-    (r) => !usedRouteIds.value.has(r.id) || Number(encounterForm.value.routeId) === r.id,
-  ),
-)
+const dupesWarning = computed(() => {
+  const pokemon = pokemonById.value.get(Number(encounterForm.value.pokemonId))
+  return shouldWarnDupes({
+    rules: run.value?.rules,
+    isShiny: encounterForm.value.isShiny,
+    pokemon,
+    encounters: encounters.value,
+    pokemonById: pokemonById.value,
+  })
+})
 
 function blankEncounterForm() {
   return {
-    routeId: '',
     pokemonId: '',
     nickname: '',
     status: encounterStatuses.alive,
@@ -125,19 +129,14 @@ function syncEditorsFromRun(next) {
   editRules.value = { ...(next.rules ?? {}) }
 }
 
-function pokemonLabel(id) {
-  const p = pokemonById.value.get(Number(id))
-  return p ? `#${p.id} ${p.name}` : id != null ? `#${id}` : '—'
-}
-
 function routeLabel(id) {
-  const r = routeById.value.get(Number(id))
-  return r ? r.name : `Route ${id}`
+  return routeById.value.get(Number(id))?.name ?? `Route ${id}`
 }
 
 async function loadCatalogs(gameId) {
+  const generation = generationForGame(gameId)
   const [pokemonResult, routesResult] = await Promise.all([
-    apiClient.listPokemon({ generation: 1 }),
+    apiClient.listPokemon({ maxGeneration: generation }),
     apiClient.listRoutes({ gameId }),
   ])
   if (pokemonResult.ok && Array.isArray(pokemonResult.data)) {
@@ -182,6 +181,9 @@ async function loadRun() {
 
     if (rulesResult.ok && Array.isArray(rulesResult.data?.rules)) {
       ruleCatalog.value = rulesResult.data.rules
+    }
+    if (rulesResult.ok && Array.isArray(rulesResult.data?.presets)) {
+      rulePresets.value = rulesResult.data.presets
     }
     if (encountersResult.ok && Array.isArray(encountersResult.data)) {
       encounters.value = encountersResult.data
@@ -250,6 +252,24 @@ async function saveRules() {
   }
 }
 
+function applyPreset(id) {
+  const preset = rulePresets.value.find((item) => item.id === id)
+  if (preset?.rules) {
+    editRules.value = { ...preset.rules }
+    return
+  }
+  if (id === 'hardcore') {
+    editRules.value = {
+      ...editRules.value,
+      setMode: true,
+      levelCap: true,
+      noItemsInBattle: true,
+      noHeldItems: true,
+      blackoutIsFailure: true,
+    }
+  }
+}
+
 async function archiveRun() {
   actionError.value = ''
   const ok = window.confirm(
@@ -272,32 +292,30 @@ async function archiveRun() {
   }
 }
 
-function openEncounterDialog() {
+function openEncounterDialog(area) {
   actionError.value = ''
+  loggingRoute.value = area
   encounterForm.value = blankEncounterForm()
-  if (availableRoutes.value.length) {
-    encounterForm.value.routeId = availableRoutes.value[0].id
-  }
-  encounterDialog.value?.showModal()
-}
-
-function closeEncounterDialog() {
-  encounterDialog.value?.close()
+  encounterDialogOpen.value = true
 }
 
 async function submitEncounter() {
   actionError.value = ''
+  if (!loggingRoute.value) return
+
   const body = {
-    routeId: Number(encounterForm.value.routeId),
+    routeId: Number(loggingRoute.value.id),
     status: Number(encounterForm.value.status),
     nickname: encounterForm.value.nickname.trim(),
     isShiny: Boolean(encounterForm.value.isShiny),
     notes: encounterForm.value.notes,
   }
 
-  if (body.status !== encounterStatuses.failed) {
+  const needsSpecies =
+    body.status !== encounterStatuses.failed && body.status !== encounterStatuses.skipped
+  if (needsSpecies) {
     if (!encounterForm.value.pokemonId) {
-      actionError.value = 'Pick a Pokémon (or mark the encounter as failed).'
+      actionError.value = 'Pick a Pokémon (or mark the encounter as missed / skipped).'
       return
     }
     body.pokemonId = Number(encounterForm.value.pokemonId)
@@ -316,10 +334,14 @@ async function submitEncounter() {
       actionError.value = apiMessage(result, `Could not log encounter (${result.status}).`)
       return
     }
-    encounters.value = [...encounters.value, result.data].sort(
+    const saved = result.data
+    encounters.value = [...encounters.value, saved].sort(
       (a, b) => a.caughtAt - b.caughtAt || a.id - b.id,
     )
-    closeEncounterDialog()
+    if (Array.isArray(saved.warnings) && saved.warnings.includes('dupesClause')) {
+      actionError.value = 'Saved with a dupes-clause warning — this line is already on the run.'
+    }
+    encounterDialogOpen.value = false
   } catch (err) {
     actionError.value = err instanceof Error ? err.message : 'Could not log encounter.'
   } finally {
@@ -379,303 +401,147 @@ watch(runId, loadRun)
             <span class="muted">Started {{ formatUnixDate(run.startDate) }}</span>
           </div>
         </div>
-        <div class="hero__actions">
-          <button
-            type="button"
-            class="btn btn--danger"
-            data-test="run-button-archive"
-            :disabled="deleting"
-            @click="archiveRun"
-          >
-            {{ deleting ? 'Archiving…' : 'Archive run' }}
-          </button>
-        </div>
+        <Button
+          label="Archive run"
+          severity="danger"
+          outlined
+          data-test="run-button-archive"
+          :loading="deleting"
+          @click="archiveRun"
+        />
       </header>
 
       <p v-if="actionError" class="state state--error" role="alert" data-test="run-detail-action-error">
         {{ actionError }}
       </p>
 
-      <div class="panels">
-        <section class="panel" aria-labelledby="details-heading">
-          <div class="section__head">
-            <h2 id="details-heading">Details</h2>
-            <button
-              type="button"
-              class="btn btn--primary"
-              data-test="run-button-save-details"
-              :disabled="savingDetails"
-              @click="saveDetails"
-            >
-              {{ savingDetails ? 'Saving…' : 'Save' }}
-            </button>
-          </div>
+      <RunStatsStrip
+        :remaining="remainingLocations"
+        :alive="aliveCount"
+        :boxed="boxedCount"
+        :dead="deadCount"
+        :missed="missedCount"
+      />
 
-          <div class="details-grid">
-            <div class="field-block">
-              <label class="field" for="edit-name">Name</label>
-              <input
-                id="edit-name"
-                v-model="editDetails.name"
-                type="text"
-                class="field__input"
-                data-test="run-edit-name"
-              />
-            </div>
-
-            <div class="field-block">
-              <label class="field" for="edit-status">Status</label>
-              <select
-                id="edit-status"
-                v-model.number="editDetails.status"
-                class="field__input"
-                data-test="run-edit-status"
-              >
-                <option v-for="opt in runStatusOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-            </div>
-
-            <div class="field-block">
-              <label class="field" for="edit-start">Start date</label>
-              <input
-                id="edit-start"
-                v-model="editDetails.startDate"
-                type="date"
-                class="field__input"
-                data-test="run-edit-start"
-              />
-            </div>
-
-            <div class="field-block field-block--full">
-              <label class="field" for="edit-notes">Notes</label>
-              <textarea
-                id="edit-notes"
-                v-model="editDetails.notes"
-                class="field__input field__textarea"
-                rows="4"
-                data-test="run-edit-notes"
-              />
-            </div>
-          </div>
-        </section>
-
-        <section class="panel" aria-labelledby="rules-heading">
-          <div class="section__head">
-            <div>
-              <h2 id="rules-heading">Rules</h2>
-              <p class="section-lede">{{ enabledRuleCount }} enabled · hover a rule for details</p>
-            </div>
-            <button
-              type="button"
-              class="btn btn--primary"
-              data-test="run-button-save-rules"
-              :disabled="savingRules"
-              @click="saveRules"
-            >
-              {{ savingRules ? 'Saving…' : 'Save' }}
-            </button>
-          </div>
-
-          <div class="rules-compact" data-test="run-detail-rules-edit">
-            <div v-for="group in rulesByCategory" :key="group.category" class="rules-group">
-              <h3 class="rules-group__title">{{ group.label }}</h3>
-              <ul class="rule-chip-list">
-                <li v-for="rule in group.rules" :key="rule.key">
-                  <label
-                    class="rule-chip"
-                    :class="{ 'rule-chip--on': editRules[rule.key] }"
-                    :title="rule.description"
-                  >
-                    <input
-                      v-model="editRules[rule.key]"
-                      type="checkbox"
-                      :data-test="`run-rule-${rule.key}`"
-                    />
-                    <span>{{ rule.label }}</span>
-                  </label>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </section>
+      <div class="tab-bar" data-test="run-tabs" role="tablist">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          type="button"
+          class="tab-bar__btn"
+          :class="{ 'tab-bar__btn--on': activeTab === tab.id }"
+          :data-test="tab.test"
+          role="tab"
+          :aria-selected="activeTab === tab.id"
+          @click="activeTab = tab.id"
+        >
+          {{ tab.label }}
+        </button>
       </div>
 
-      <section class="panel panel--encounters" aria-labelledby="encounters-heading">
+      <LocationChecklist
+        v-if="activeTab === 'locations'"
+        :routes="routeOptions"
+        :encounters-by-route-id="encountersByRouteId"
+        :pokemon-by-id="pokemonById"
+        @log="openEncounterDialog"
+        @status="setEncounterStatus"
+        @remove="removeEncounter"
+      />
+      <PokemonRoster
+        v-else-if="activeTab === 'team'"
+        :encounters="encounters"
+        :pokemon-by-id="pokemonById"
+        :route-by-id="routeById"
+        :status-filter="encounterStatuses.alive"
+        @status="setEncounterStatus"
+        @remove="removeEncounter"
+      />
+      <PokemonRoster
+        v-else-if="activeTab === 'box'"
+        :encounters="encounters"
+        :pokemon-by-id="pokemonById"
+        :route-by-id="routeById"
+        :status-filter="encounterStatuses.boxed"
+        @status="setEncounterStatus"
+        @remove="removeEncounter"
+      />
+      <PokemonRoster
+        v-else-if="activeTab === 'graveyard'"
+        :encounters="encounters"
+        :pokemon-by-id="pokemonById"
+        :route-by-id="routeById"
+        :status-filter="encounterStatuses.dead"
+        @status="setEncounterStatus"
+        @remove="removeEncounter"
+      />
+      <RulesEditor
+        v-else-if="activeTab === 'rules'"
+        v-model="editRules"
+        :catalog="ruleCatalog"
+        :saving="savingRules"
+        @save="saveRules"
+        @preset="applyPreset"
+      />
+      <section v-else-if="activeTab === 'details'" class="panel" aria-labelledby="details-heading">
         <div class="section__head">
-          <div>
-            <h2 id="encounters-heading">Encounters</h2>
-            <p class="section-lede">Log catches, gifts, and failed first encounters.</p>
-          </div>
-          <button
-            type="button"
-            class="btn btn--primary"
-            data-test="run-button-add-encounter"
-            @click="openEncounterDialog"
-          >
-            Log encounter
-          </button>
+          <h2 id="details-heading">Details</h2>
+          <Button
+            label="Save"
+            data-test="run-button-save-details"
+            :loading="savingDetails"
+            @click="saveDetails"
+          />
         </div>
-
-        <p v-if="!encounters.length" class="muted" data-test="run-encounters-empty">
-          No encounters logged yet.
-        </p>
-        <ul v-else class="encounter-list" data-test="run-encounters-list">
-          <li
-            v-for="encounter in encounters"
-            :key="encounter.id"
-            class="encounter-row"
-            :data-test="`encounter-row-${encounter.id}`"
-          >
-            <div class="encounter-row__main">
-              <span class="encounter-row__title">
-                <template v-if="encounter.status === encounterStatuses.failed">
-                  Missed — {{ routeLabel(encounter.routeId) }}
-                </template>
-                <template v-else>
-                  {{ encounter.nickname || pokemonLabel(encounter.pokemonId) }}
-                  <span class="muted">
-                    ({{ pokemonLabel(encounter.pokemonId) }})
-                  </span>
-                </template>
-              </span>
-              <span class="encounter-row__meta">
-                {{ routeLabel(encounter.routeId) }}
-                ·
-                <span :data-test="`encounter-status-${encounter.id}`">
-                  {{ formatEncounterStatus(encounter.status) }}
-                </span>
-                <span v-if="encounter.isShiny"> · Shiny</span>
-              </span>
-            </div>
-            <div class="encounter-row__actions">
-              <select
-                class="field__input field__input--compact"
-                :value="encounter.status"
-                :data-test="`encounter-status-select-${encounter.id}`"
-                @change="setEncounterStatus(encounter, $event.target.value)"
-              >
-                <option v-for="opt in encounterStatusOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-              <button
-                type="button"
-                class="btn"
-                :data-test="`encounter-delete-${encounter.id}`"
-                @click="removeEncounter(encounter)"
-              >
-                Remove
-              </button>
-            </div>
-          </li>
-        </ul>
+        <div class="details-grid">
+          <div class="field-block">
+            <label class="field" for="edit-name">Name</label>
+            <input id="edit-name" v-model="editDetails.name" class="field__input" data-test="run-edit-name" />
+          </div>
+          <div class="field-block">
+            <label class="field" for="edit-status">Status</label>
+            <Select
+              input-id="edit-status"
+              v-model="editDetails.status"
+              :options="runStatusOptions"
+              option-label="label"
+              option-value="value"
+              data-test="run-edit-status"
+            />
+          </div>
+          <div class="field-block">
+            <label class="field" for="edit-start">Start date</label>
+            <input
+              id="edit-start"
+              v-model="editDetails.startDate"
+              type="date"
+              class="field__input"
+              data-test="run-edit-start"
+            />
+          </div>
+          <div class="field-block field-block--full">
+            <label class="field" for="edit-notes">Notes</label>
+            <textarea
+              id="edit-notes"
+              v-model="editDetails.notes"
+              class="field__input"
+              rows="4"
+              data-test="run-edit-notes"
+            />
+          </div>
+        </div>
       </section>
 
-      <dialog
-        ref="encounterDialog"
-        class="modal"
-        data-test="encounter-dialog"
-        @cancel.prevent="closeEncounterDialog"
-      >
-        <form class="modal__form" @submit.prevent="submitEncounter">
-          <h2>Log encounter</h2>
-
-          <label class="field" for="enc-route">Route / area</label>
-          <select
-            id="enc-route"
-            v-model.number="encounterForm.routeId"
-            class="field__input"
-            data-test="encounter-route-select"
-            required
-          >
-            <option disabled value="">Select area</option>
-            <option v-for="area in availableRoutes" :key="area.id" :value="area.id">
-              {{ area.name }}
-            </option>
-          </select>
-
-          <label class="field" for="enc-status">Outcome</label>
-          <select
-            id="enc-status"
-            v-model.number="encounterForm.status"
-            class="field__input"
-            data-test="encounter-outcome-select"
-          >
-            <option v-for="opt in encounterStatusOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
-
-          <label class="field" for="enc-pokemon">Pokémon</label>
-          <select
-            id="enc-pokemon"
-            v-model="encounterForm.pokemonId"
-            class="field__input"
-            data-test="encounter-pokemon-select"
-            :required="encounterForm.status !== encounterStatuses.failed"
-          >
-            <option value="">
-              {{ encounterForm.status === encounterStatuses.failed ? 'Unknown / skip' : 'Select species' }}
-            </option>
-            <option v-for="poke in pokemonOptions" :key="poke.id" :value="poke.id">
-              #{{ poke.id }} {{ poke.name }}
-            </option>
-          </select>
-
-          <label class="field" for="enc-nickname">Nickname</label>
-          <input
-            id="enc-nickname"
-            v-model="encounterForm.nickname"
-            type="text"
-            class="field__input"
-            data-test="encounter-nickname-input"
-            :required="
-              run.rules?.nicknameRequired && encounterForm.status !== encounterStatuses.failed
-            "
-          />
-
-          <label class="field field--inline">
-            <input v-model="encounterForm.isShiny" type="checkbox" data-test="encounter-shiny" />
-            Shiny
-          </label>
-
-          <label class="field" for="enc-level">Level (optional)</label>
-          <input
-            id="enc-level"
-            v-model="encounterForm.level"
-            type="number"
-            min="1"
-            max="100"
-            class="field__input"
-            data-test="encounter-level-input"
-          />
-
-          <label class="field" for="enc-notes">Notes</label>
-          <textarea
-            id="enc-notes"
-            v-model="encounterForm.notes"
-            class="field__input field__textarea"
-            rows="2"
-            data-test="encounter-notes-input"
-          />
-
-          <div class="modal__actions">
-            <button type="button" class="btn" data-test="encounter-cancel" @click="closeEncounterDialog">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="btn btn--primary"
-              data-test="encounter-submit"
-              :disabled="addingEncounter"
-            >
-              {{ addingEncounter ? 'Saving…' : 'Save encounter' }}
-            </button>
-          </div>
-        </form>
-      </dialog>
+      <EncounterDialog
+        v-model:visible="encounterDialogOpen"
+        :route="loggingRoute"
+        :form="encounterForm"
+        :pokemon-options="pokemonOptions"
+        :saving="addingEncounter"
+        :nickname-required="Boolean(run.rules?.nicknameRequired)"
+        :dupes-warning="dupesWarning"
+        @submit="submitEncounter"
+      />
     </template>
   </main>
 </template>
@@ -751,11 +617,6 @@ watch(runId, loadRun)
   font-size: 0.9rem;
 }
 
-.hero__actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
 .pill {
   display: inline-block;
   padding: 0.15rem 0.55rem;
@@ -768,32 +629,28 @@ watch(runId, loadRun)
   color: #6a1b9a;
 }
 
-.muted {
-  color: #666;
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 1rem;
+  border-bottom: 1px solid #e6e6e6;
 }
 
-.panels {
-  display: grid;
-  gap: 1rem;
-  margin-bottom: 1rem;
+.tab-bar__btn {
+  padding: 0.55rem 0.85rem;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: #555;
 }
 
-@media (min-width: 52rem) {
-  .panels {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-    align-items: start;
-  }
-}
-
-.panel {
-  padding: 1rem 1.1rem 1.15rem;
-  border: 1px solid #e6e6e6;
-  border-radius: 0.65rem;
-  background: #fff;
-}
-
-.panel--encounters {
-  margin-bottom: 1rem;
+.tab-bar__btn--on {
+  color: #1565c0;
+  border-bottom-color: #1565c0;
+  font-weight: 600;
 }
 
 .section__head {
@@ -805,14 +662,8 @@ watch(runId, loadRun)
 }
 
 .section__head h2 {
-  margin: 0 0 0.2rem;
-  font-size: 1.1rem;
-}
-
-.section-lede {
   margin: 0;
-  font-size: 0.8rem;
-  color: #666;
+  font-size: 1.1rem;
 }
 
 .details-grid {
@@ -830,180 +681,19 @@ watch(runId, loadRun)
   }
 }
 
-.field-block .field {
-  margin-top: 0;
-}
-
 .field {
   display: block;
-  margin: 0.75rem 0 0.375rem;
+  margin-bottom: 0.35rem;
   font-weight: 600;
   font-size: 0.8rem;
 }
 
-.field--inline {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
-}
-
-.field__input {
+.details-grid .field__input {
   width: 100%;
   box-sizing: border-box;
   padding: 0.45rem 0.65rem;
   border: 1px solid #ccc;
   border-radius: 0.375rem;
   font: inherit;
-}
-
-.field__input--compact {
-  width: auto;
-  min-width: 8rem;
-}
-
-.field__textarea {
-  resize: vertical;
-}
-
-.btn {
-  padding: 0.45rem 0.85rem;
-  border: 1px solid #ccc;
-  border-radius: 0.375rem;
-  background: #fff;
-  cursor: pointer;
-  font: inherit;
-  white-space: nowrap;
-}
-
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.btn--primary {
-  border-color: #1976d2;
-  background: #1976d2;
-  color: #fff;
-}
-
-.btn--danger {
-  border-color: #c62828;
-  color: #c62828;
-}
-
-.btn--danger:hover:not(:disabled) {
-  background: #ffebee;
-}
-
-.rules-compact {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.rules-group__title {
-  margin: 0 0 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #777;
-}
-
-.rule-chip-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.rule-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.28rem 0.55rem;
-  border: 1px solid #ddd;
-  border-radius: 999px;
-  background: #f7f7f7;
-  font-size: 0.8rem;
-  cursor: pointer;
-  user-select: none;
-}
-
-.rule-chip input {
-  margin: 0;
-}
-
-.rule-chip--on {
-  border-color: #90caf9;
-  background: #e3f2fd;
-  color: #0d47a1;
-}
-
-.encounter-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.encounter-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.85rem 1rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 0.5rem;
-}
-
-.encounter-row__title {
-  display: block;
-  font-weight: 600;
-}
-
-.encounter-row__meta {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.85rem;
-  color: #555;
-}
-
-.encounter-row__actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.modal {
-  width: min(100% - 2rem, 26rem);
-  padding: 0;
-  border: none;
-  border-radius: 0.5rem;
-  box-shadow: 0 1rem 2rem rgb(0 0 0 / 20%);
-}
-
-.modal::backdrop {
-  background: rgb(0 0 0 / 45%);
-}
-
-.modal__form {
-  padding: 1.25rem;
-}
-
-.modal__form h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.25rem;
-}
-
-.modal__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
 }
 </style>

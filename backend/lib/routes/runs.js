@@ -1,6 +1,6 @@
 import { requireUser } from '../auth.js'
 import { getRouteParam } from '../requestParams.js'
-import { getRulesCatalog } from '../runRules.js'
+import { getRulePresets, getRulesCatalog } from '../runRules.js'
 import {
   createEncounter,
   getEncounterById,
@@ -34,7 +34,7 @@ export async function handleRuns(req, res, segments) {
   if (segments.length === 2 && segments[1] === 'rules' && req.method === 'GET') {
     const user = await requireUser(req, res)
     if (!user) return
-    return res.status(200).json({ rules: getRulesCatalog() })
+    return res.status(200).json({ rules: getRulesCatalog(), presets: getRulePresets() })
   }
 
   // GET /api/runs — list current user's runs

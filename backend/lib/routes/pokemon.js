@@ -9,7 +9,8 @@ export async function handlePokemon(req, res, segments) {
     if (!user) return
 
     const generation = req.query?.generation
-    const pokemon = await listPokemon({ generation })
+    const maxGeneration = req.query?.maxGeneration
+    const pokemon = await listPokemon({ generation, maxGeneration })
     return res.status(200).json(pokemon)
   }
 

@@ -1,4 +1,6 @@
-import Route from '../models/Route.js'
+import { allLocations } from '../data/locations/index.js'
+
+const routeById = new Map(allLocations.map((row) => [row.id, row]))
 
 export function toRouteResponse(doc) {
   if (!doc) return null
@@ -7,7 +9,7 @@ export function toRouteResponse(doc) {
     slug: doc.slug,
     name: doc.name,
     region: doc.region,
-    gameIds: doc.gameIds,
+    gameIds: [...doc.gameIds],
     sortOrder: doc.sortOrder,
     encounterType: doc.encounterType,
     parentSlug: doc.parentSlug ?? null,
@@ -15,22 +17,25 @@ export function toRouteResponse(doc) {
   }
 }
 
-export async function listRoutes({ gameId, region, encounterType } = {}) {
-  const query = {}
+export function listRoutes({ gameId, region, encounterType } = {}) {
+  let rows = allLocations
   if (gameId != null && gameId !== '') {
-    query.gameIds = Number(gameId)
+    const id = Number(gameId)
+    rows = rows.filter((row) => row.gameIds.includes(id))
   }
   if (region) {
-    query.region = String(region).toLowerCase()
+    const value = String(region).toLowerCase()
+    rows = rows.filter((row) => row.region === value)
   }
   if (encounterType) {
-    query.encounterType = String(encounterType).toLowerCase()
+    const value = String(encounterType).toLowerCase()
+    rows = rows.filter((row) => row.encounterType === value)
   }
-  const rows = await Route.find(query).sort({ sortOrder: 1, id: 1 }).lean()
-  return rows.map(toRouteResponse)
+  return [...rows]
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+    .map(toRouteResponse)
 }
 
-export async function getRouteById(id) {
-  const route = await Route.findOne({ id: Number(id) }).lean()
-  return toRouteResponse(route)
+export function getRouteById(id) {
+  return toRouteResponse(routeById.get(Number(id)) ?? null)
 }

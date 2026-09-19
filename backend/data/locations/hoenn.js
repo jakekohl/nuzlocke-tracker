@@ -1,0 +1,97 @@
+import { buildLocations } from './build.js'
+import { gameIds } from '../../lib/games.js'
+
+const RSE = [gameIds.ruby, gameIds.sapphire, gameIds.emerald]
+const ORAS = [gameIds.omegaruby, gameIds.alphasapphire]
+const HOENN = [...RSE, ...ORAS]
+
+export const hoennLocations = buildLocations({
+  idStart: 500,
+  region: 'hoenn',
+  gameIds: HOENN,
+  entries: [
+    ['littleroot-starter', 'Littleroot Town (Starter)', 10, 'gift'],
+    ['route-101', 'Route 101', 20],
+    ['route-102', 'Route 102', 30],
+    ['route-103', 'Route 103', 40],
+    ['petalburg-woods', 'Petalburg Woods', 50],
+    ['route-104', 'Route 104', 60],
+    ['rustboro-devon', 'Rustboro City (Devon gift)', 70, 'gift'],
+    ['route-116', 'Route 116', 80],
+    ['rusturf-tunnel', 'Rusturf Tunnel', 90],
+    ['route-105', 'Route 105', 100],
+    ['route-106', 'Route 106', 110],
+    ['dewford-granite', 'Granite Cave', 120],
+    ['route-107', 'Route 107', 130],
+    ['route-108', 'Route 108', 140],
+    ['route-109', 'Route 109', 150],
+    ['slateport-gift', 'Slateport City (Gift)', 160, 'gift'],
+    ['route-110', 'Route 110', 170],
+    ['trick-house', 'Trick House', 180],
+    ['mauville-gift', 'Mauville City (Gift)', 190, 'gift'],
+    ['route-117', 'Route 117', 200],
+    ['route-111', 'Route 111', 210],
+    ['route-112', 'Route 112', 220],
+    ['fiery-path', 'Fiery Path', 230],
+    ['route-113', 'Route 113', 240],
+    ['route-114', 'Route 114', 250],
+    ['meteor-falls', 'Meteor Falls', 260],
+    ['route-115', 'Route 115', 270],
+    ['mt-chimney', 'Mt. Chimney / Jagged Pass', 280],
+    ['jagged-pass', 'Jagged Pass', 285],
+    ['lavaridge-gift', 'Lavaridge Town (Wynaut egg)', 290, 'gift'],
+    ['route-118', 'Route 118', 300],
+    ['route-119', 'Route 119', 310],
+    ['weather-institute', 'Weather Institute (Castform)', 315, 'gift'],
+    ['route-120', 'Route 120', 320],
+    ['route-121', 'Route 121', 330],
+    ['safari-zone-hoenn', 'Safari Zone (Hoenn)', 340],
+    ['route-122', 'Route 122', 350],
+    ['mt-pyre', 'Mt. Pyre', 360],
+    ['route-123', 'Route 123', 370],
+    ['new-mau-desert', 'Route 111 (Desert)', 375, 'wild', 'route-111'],
+    ['route-124', 'Route 124', 380],
+    ['route-125', 'Route 125', 390],
+    ['shoal-cave', 'Shoal Cave', 400],
+    ['route-126', 'Route 126', 410],
+    ['route-127', 'Route 127', 420],
+    ['route-128', 'Route 128', 430],
+    ['seafloor-cavern', 'Seafloor Cavern', 440],
+    ['route-129', 'Route 129', 450],
+    ['route-130', 'Route 130', 460],
+    ['route-131', 'Route 131', 470],
+    ['sky-pillar', 'Sky Pillar', 480],
+    ['route-132', 'Route 132', 490],
+    ['route-133', 'Route 133', 500],
+    ['route-134', 'Route 134', 510],
+    ['victory-road-hoenn', 'Victory Road (Hoenn)', 520],
+    ['cave-of-origin', 'Cave of Origin', 530, 'static'],
+    ['abandoned-ship', 'Abandoned Ship / Sea Mauville', 540],
+    ['ss-tidal', 'S.S. Tidal', 550],
+  ],
+})
+
+export const emeraldExtraLocations = buildLocations({
+  idStart: 570,
+  region: 'hoenn',
+  gameIds: [gameIds.emerald],
+  entries: [
+    ['battle-frontier-hoenn', 'Battle Frontier area', 560],
+    ['artisan-cave', 'Artisan Cave', 565],
+    ['desert-underpass', 'Desert Underpass', 568],
+  ],
+})
+
+export const orasExtraLocations = buildLocations({
+  idStart: 580,
+  region: 'hoenn',
+  gameIds: ORAS,
+  entries: [
+    ['oras-sootopolis-cave', 'Sootopolis (Legendary cave)', 535, 'static'],
+    ['oras-eon-ticket', 'Southern Island', 545, 'static'],
+    ['oras-sea-mauville', 'Sea Mauville', 548],
+    ['oras-petalburg-woods-extra', 'Petalburg Woods (hidden)', 55],
+    ['oras-mirage-spots', 'Mirage Spots', 570],
+    ['oras-crevice-cave', 'Crevice Cave', 575],
+  ],
+})

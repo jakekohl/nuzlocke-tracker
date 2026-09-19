@@ -2,7 +2,7 @@
   "name": "nuzlocke-tracker-frontend",
   "version": "0.0.0",
   "description": "Frontend for nuzlocke-tracker",
-  "type": "module",  
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jakekohl/nuzlocke-tracker.git"
@@ -28,7 +28,9 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@primeuix/themes": "2.0.3",
     "pinia": "^3.0.4",
+    "primevue": "4.5.4",
     "vue": "^3.5.32",
     "vue-router": "^5.0.4"
   },

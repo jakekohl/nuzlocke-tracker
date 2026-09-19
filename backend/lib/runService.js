@@ -1,5 +1,6 @@
 import Run, { gameIds, runStatuses } from '../models/Run.js'
 import { getNextId } from './apiHandler.js'
+import { supportedGameIds } from './gameCatalog.js'
 import { defaultRunRules, normalizeRunRules } from './runRules.js'
 import { toUnixTimestamp, unixNow } from './timestamps.js'
 
@@ -62,6 +63,9 @@ export function validateRunInput(data, { partial = false } = {}) {
   if (!partial || data.gameId !== undefined) {
     if (!VALID_GAME_IDS.has(Number(data.gameId))) {
       throw httpError(400, 'Invalid gameId')
+    }
+    if (!supportedGameIds.has(Number(data.gameId))) {
+      throw httpError(400, 'Game is not supported yet')
     }
   }
 

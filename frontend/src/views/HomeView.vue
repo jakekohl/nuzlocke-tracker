@@ -8,8 +8,8 @@ import { RouterLink } from 'vue-router'
       <p class="eyebrow">Personal playthrough tracker</p>
       <h1>Nuzlocke Tracker</h1>
       <p class="lede">
-        Keep your hardcore Pokémon runs organized in one place — encounters, team members, and
-        progress across every route and gym.
+        Keep your Nuzlocke runs organized — locations, catches with sprites, team, box, and the
+        graveyard, for every mainline Pokémon game.
       </p>
       <div class="hero__actions">
         <RouterLink to="/runs" class="btn btn--primary" data-test="home-cta-runs">
@@ -25,16 +25,16 @@ import { RouterLink } from 'vue-router'
       <h2 id="features-heading">What you can track</h2>
       <ul class="feature-list">
         <li class="feature-card">
-          <h3>Runs &amp; routes</h3>
-          <p>Log each Nuzlocke attempt and the encounters you catch along the way.</p>
+          <h3>Locations</h3>
+          <p>Fill in a checklist of routes and areas as you play, including gifts and statics.</p>
         </li>
         <li class="feature-card">
-          <h3>Your team</h3>
-          <p>Follow party members, deaths, and box Pokémon as your journey unfolds.</p>
+          <h3>Team, box &amp; graveyard</h3>
+          <p>See living Pokémon, boxed backups, and fallen teammates with sprites.</p>
         </li>
         <li class="feature-card">
-          <h3>Private &amp; secure</h3>
-          <p>Sign in with a personal access key stored only in this browser tab for the session.</p>
+          <h3>Rules you actually use</h3>
+          <p>Standard or hardcore presets, plus clauses like dupes, shinies, and nicknames.</p>
         </li>
       </ul>
     </section>

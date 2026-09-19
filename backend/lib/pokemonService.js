@@ -1,4 +1,6 @@
-import Pokemon from '../models/Pokemon.js'
+import { nationalDex } from '../data/nationalDex.js'
+
+const pokemonById = new Map(nationalDex.map((row) => [row.id, row]))
 
 export function toPokemonResponse(doc) {
   if (!doc) return null
@@ -6,21 +8,23 @@ export function toPokemonResponse(doc) {
     id: doc.id,
     name: doc.name,
     generation: doc.generation,
-    types: doc.types,
+    types: [...doc.types],
     evolutionFamilyId: doc.evolutionFamilyId,
   }
 }
 
-export async function listPokemon({ generation } = {}) {
-  const query = {}
+export function listPokemon({ generation, maxGeneration } = {}) {
+  let rows = nationalDex
   if (generation != null && generation !== '') {
-    query.generation = Number(generation)
+    const gen = Number(generation)
+    rows = rows.filter((row) => row.generation === gen)
+  } else if (maxGeneration != null && maxGeneration !== '') {
+    const max = Number(maxGeneration)
+    rows = rows.filter((row) => row.generation <= max)
   }
-  const rows = await Pokemon.find(query).sort({ id: 1 }).lean()
   return rows.map(toPokemonResponse)
 }
 
-export async function getPokemonById(id) {
-  const pokemon = await Pokemon.findOne({ id: Number(id) }).lean()
-  return toPokemonResponse(pokemon)
+export function getPokemonById(id) {
+  return toPokemonResponse(pokemonById.get(Number(id)) ?? null)
 }

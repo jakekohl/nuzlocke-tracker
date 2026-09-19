@@ -4,8 +4,20 @@
  * @returns {Cypress.Chainable} - The element
  */
 Cypress.Commands.add('getDataTest', (selector) => {
-  return cy.get(`[data-test=${selector}]`);
-});
+  return cy.get(`[data-test=${selector}]`)
+})
+
+/**
+ * Scroll a data-test element into view and assert it is visible.
+ * @param {string} selector - The data-test attribute value
+ * @returns {Cypress.Chainable} - The element
+ */
+Cypress.Commands.add('ensureDataTestVisible', (selector) => {
+  return cy
+    .getDataTest(selector)
+    .scrollIntoView({ offset: { top: -120, left: 0 } })
+    .should('be.visible')
+})
 
 /**
  * Click an element using the data-test attribute
@@ -14,8 +26,8 @@ Cypress.Commands.add('getDataTest', (selector) => {
  * @returns {Cypress.Chainable} - The element
  */
 Cypress.Commands.add('clickDataTest', (selector, options) => {
-  return cy.getDataTest(selector).click(options);
-});
+  return cy.ensureDataTestVisible(selector).click(options)
+})
 
 /**
  * Type text into an element using the data-test attribute
@@ -25,10 +37,10 @@ Cypress.Commands.add('clickDataTest', (selector, options) => {
  * @returns {Cypress.Chainable} - The element
  */
 Cypress.Commands.add('typeDataTest', (selector, text, options) => {
-  cy.getDataTest(selector).click();
-  cy.getDataTest(selector).clear();
-  cy.getDataTest(selector).type(text, options);
-});
+  cy.ensureDataTestVisible(selector).click()
+  cy.getDataTest(selector).clear()
+  cy.getDataTest(selector).type(text, options)
+})
 
 /**
  * Get an element using the aria-label attribute
@@ -36,8 +48,8 @@ Cypress.Commands.add('typeDataTest', (selector, text, options) => {
  * @returns {Cypress.Chainable} - The element
  */
 Cypress.Commands.add('getAriaLabel', (label) => {
-  return cy.get(`[aria-label="${label}"]`);
-});
+  return cy.get(`[aria-label="${label}"]`)
+})
 
 /**
  * Click an element using the aria-label attribute
@@ -45,5 +57,5 @@ Cypress.Commands.add('getAriaLabel', (label) => {
  * @returns {Cypress.Chainable} - The element
  */
 Cypress.Commands.add('clickAriaLabel', (label) => {
-  return cy.getAriaLabel(label).click();
-});
+  return cy.getAriaLabel(label).scrollIntoView().should('be.visible').click()
+})

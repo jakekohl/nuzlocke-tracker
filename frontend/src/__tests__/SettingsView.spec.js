@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import SettingsView from '../views/SettingsView.vue'
 import { useApiKeyStore } from '../stores/apiKey'
+import { PrimeVueTestPlugin } from './primeVueTestPlugin'
 
 vi.mock('@/services/ApiClient', () => ({
   apiClient: {
@@ -17,16 +18,12 @@ describe('SettingsView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(apiClient.getMe).mockReset()
-    HTMLDialogElement.prototype.showModal = vi.fn(function showModal() {
-      this.setAttribute('open', '')
-    })
-    HTMLDialogElement.prototype.close = vi.fn(function close() {
-      this.removeAttribute('open')
-    })
   })
 
   it('shows missing key status by default', () => {
-    const wrapper = mount(SettingsView)
+    const wrapper = mount(SettingsView, {
+      global: { plugins: [PrimeVueTestPlugin] },
+    })
     expect(wrapper.find('[data-test="api-key-status"]').text()).toMatch(/not configured|unauthorized/i)
     expect(wrapper.find('[data-test="api-button-verify"]').attributes('disabled')).toBeDefined()
   })
@@ -40,7 +37,9 @@ describe('SettingsView', () => {
       data: { id: 1, name: 'Jake', email: 'jake@example.com' },
     })
 
-    const wrapper = mount(SettingsView)
+    const wrapper = mount(SettingsView, {
+      global: { plugins: [PrimeVueTestPlugin] },
+    })
     await wrapper.find('[data-test="api-button-verify"]').trigger('click')
     await flushPromises()
 
@@ -58,7 +57,9 @@ describe('SettingsView', () => {
       data: { message: 'Unauthorized' },
     })
 
-    const wrapper = mount(SettingsView)
+    const wrapper = mount(SettingsView, {
+      global: { plugins: [PrimeVueTestPlugin] },
+    })
     await wrapper.find('[data-test="api-button-verify"]').trigger('click')
     await flushPromises()
 

@@ -6,6 +6,7 @@ import {
   encounterStatusOptions,
   formatEncounterStatus,
 } from '@/constants/encounterStatuses'
+import { encounterStatusSeverity } from '@/lib/statusUi'
 
 const props = defineProps({
   routes: { type: Array, required: true },
@@ -32,7 +33,10 @@ const filteredRoutes = computed(() => {
     if (fillFilter.value === 'filled' && !encounter) return false
     if (!q) return true
     const pokemon = encounter ? props.pokemonById.get(Number(encounter.pokemonId)) : null
-    const haystack = [route.name, encounter?.nickname, pokemon?.name].filter(Boolean).join(' ').toLowerCase()
+    const haystack = [route.name, encounter?.nickname, pokemon?.name]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
     return haystack.includes(q)
   })
 })
@@ -74,8 +78,12 @@ function title(encounter) {
       <li
         v-for="route in filteredRoutes"
         :key="route.id"
-        class="row"
-        :data-test="encountersByRouteId.get(route.id) ? `encounter-row-${encountersByRouteId.get(route.id).id}` : `location-row-${route.id}`"
+        class="row surface"
+        :data-test="
+          encountersByRouteId.get(route.id)
+            ? `encounter-row-${encountersByRouteId.get(route.id).id}`
+            : `location-row-${route.id}`
+        "
       >
         <template v-if="encountersByRouteId.get(route.id)">
           <PokemonSprite
@@ -84,14 +92,15 @@ function title(encounter) {
             :shiny="encountersByRouteId.get(route.id).isShiny"
           />
           <div class="row__main">
-            <strong>{{ title(encountersByRouteId.get(route.id)) }}</strong>
-            <span class="muted">
-              {{ route.name }}
-              ·
-              <span :data-test="`encounter-status-${encountersByRouteId.get(route.id).id}`">
-                {{ formatEncounterStatus(encountersByRouteId.get(route.id).status) }}
-              </span>
-            </span>
+            <strong class="row__title">{{ title(encountersByRouteId.get(route.id)) }}</strong>
+            <span class="muted">{{ route.name }}</span>
+            <Tag
+              class="row__status"
+              :value="formatEncounterStatus(encountersByRouteId.get(route.id).status)"
+              :severity="encounterStatusSeverity(encountersByRouteId.get(route.id).status)"
+              rounded
+              :data-test="`encounter-status-${encountersByRouteId.get(route.id).id}`"
+            />
           </div>
           <div class="row__actions">
             <Select
@@ -115,14 +124,10 @@ function title(encounter) {
         <template v-else>
           <span class="row__placeholder" />
           <div class="row__main">
-            <strong>{{ route.name }}</strong>
+            <strong class="row__title">{{ route.name }}</strong>
             <span class="muted">{{ route.encounterType }} · open</span>
           </div>
-          <Button
-            label="Log"
-            :data-test="`location-log-${route.id}`"
-            @click="emit('log', route)"
-          />
+          <Button label="Log" :data-test="`location-log-${route.id}`" @click="emit('log', route)" />
         </template>
       </li>
     </ul>
@@ -155,27 +160,45 @@ function title(encounter) {
   grid-template-columns: 3.5rem 1fr auto;
   gap: 0.75rem;
   align-items: center;
-  padding: 0.7rem 0.85rem;
-  border: 1px solid #e6e6e6;
-  border-radius: 0.65rem;
-  background: #fff;
+  padding: 0.75rem 0.9rem;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.row:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .row__placeholder {
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: 0.5rem;
-  background: #f3f3f3;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  border: 1px dashed var(--color-border-strong);
 }
 
 .row__main {
   display: flex;
   flex-direction: column;
+  gap: 0.2rem;
   min-width: 0;
 }
 
+.row__title {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  color: var(--color-ink);
+}
+
+.row__status {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+}
+
 .muted {
-  color: #666;
+  color: var(--color-muted);
   font-size: 0.85rem;
 }
 
@@ -187,5 +210,11 @@ function title(encounter) {
 
 .status-select {
   min-width: 9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row:hover {
+    transform: none;
+  }
 }
 </style>

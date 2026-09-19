@@ -7,6 +7,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import App from '../App.vue'
 import HomeView from '../views/HomeView.vue'
 import SettingsView from '../views/SettingsView.vue'
+import { PrimeVueTestPlugin } from './primeVueTestPlugin'
 
 describe('App', () => {
   beforeEach(() => {
@@ -32,11 +33,11 @@ describe('App', () => {
 
     const wrapper = mount(App, {
       global: {
-        plugins: [createPinia(), router],
+        plugins: [createPinia(), router, PrimeVueTestPlugin],
       },
     })
 
     expect(wrapper.text()).toContain('Nuzlocke Tracker')
-    expect(wrapper.text()).toContain('View runs')
+    expect(wrapper.text()).toContain('Open runs')
   })
 })

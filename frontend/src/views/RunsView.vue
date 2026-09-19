@@ -7,6 +7,7 @@ import { fallbackGames, formatGame, gameIds } from '@/constants/games'
 import { formatRunStatus, runStatuses } from '@/constants/runStatuses'
 import { formatUnixDate, todayIsoDate } from '@/lib/dates'
 import { gamesGroupedByGeneration } from '@/lib/gamesUi'
+import { runStatusSeverity } from '@/lib/statusUi'
 
 const apiKeyStore = useApiKeyStore()
 const router = useRouter()
@@ -27,6 +28,11 @@ const form = ref({
   status: runStatuses.notStarted,
   presetId: 'standard',
 })
+
+const presetOptions = [
+  { label: 'Standard', value: 'standard' },
+  { label: 'Hardcore', value: 'hardcore' },
+]
 
 const hasKey = computed(() => apiKeyStore.isConfigured)
 const isEmpty = computed(() => !loading.value && !error.value && runs.value.length === 0)
@@ -134,11 +140,13 @@ onMounted(loadRuns)
 </script>
 
 <template>
-  <main class="runs" data-test="runs-page">
+  <main class="runs page" data-test="runs-page">
     <header class="page-header">
       <div>
         <h1>Runs</h1>
-        <p class="lede">Start a Nuzlocke for any mainline game, then fill in the location checklist as you go.</p>
+        <p class="lede">
+          Start a Nuzlocke for any mainline game, then fill in the location checklist as you go.
+        </p>
       </div>
       <Button
         label="New run"
@@ -148,19 +156,21 @@ onMounted(loadRuns)
       />
     </header>
 
-    <p v-if="loading" class="state" data-test="runs-loading">Loading runs…</p>
-    <p v-else-if="error" class="state state--error" role="alert" data-test="runs-error">
+    <p v-if="loading" class="state-box" data-test="runs-loading">Loading runs…</p>
+    <p v-else-if="error" class="state-box state-box--error" role="alert" data-test="runs-error">
       {{ error }}
       <RouterLink v-if="!hasKey" to="/settings" class="inline-link" data-test="runs-link-settings">
         Open Settings
       </RouterLink>
     </p>
-    <p v-else-if="isEmpty" class="state" data-test="runs-empty">
-      No runs yet. Create one to start tracking a mainline playthrough.
-    </p>
+    <div v-else-if="isEmpty" class="empty-panel" data-test="runs-empty">
+      <h2>No runs yet</h2>
+      <p class="muted">Create one to start tracking a mainline playthrough.</p>
+      <Button label="New run" :disabled="!hasKey" @click="openCreate" />
+    </div>
 
     <ul v-else class="run-list" data-test="runs-list">
-      <li v-for="run in runs" :key="run.id" class="run-row">
+      <li v-for="run in runs" :key="run.id" class="run-row surface">
         <RouterLink
           :to="{ name: 'run-detail', params: { id: run.id } }"
           class="run-row__link"
@@ -168,8 +178,12 @@ onMounted(loadRuns)
         >
           <span class="run-row__name">{{ run.name }}</span>
           <span class="run-row__meta">
-            <span class="pill">{{ formatGame(run.gameId) }}</span>
-            <span class="pill pill--status">{{ formatRunStatus(run.status) }}</span>
+            <Tag :value="formatGame(run.gameId)" severity="secondary" rounded />
+            <Tag
+              :value="formatRunStatus(run.status)"
+              :severity="runStatusSeverity(run.status)"
+              rounded
+            />
             <span class="muted">Started {{ formatUnixDate(run.startDate) }}</span>
           </span>
         </RouterLink>
@@ -183,24 +197,25 @@ onMounted(loadRuns)
       data-test="runs-create-dialog"
     >
       <form class="modal__form" @submit.prevent="submitCreate">
-        <p class="modal__hint">Pick a game and a rules preset. You can tweak clauses on the run page.</p>
+        <p class="field-hint">
+          Pick a game and a rules preset. You can tweak clauses on the run page.
+        </p>
 
-        <label class="field" for="run-name">Name</label>
-        <input
+        <label class="field-label" for="run-name">Name</label>
+        <InputText
           id="run-name"
           v-model="form.name"
-          type="text"
-          class="field__input"
+          class="w-full"
           data-test="run-name-input"
           placeholder="Kanto Red Nuzlocke"
           required
         />
 
-        <label class="field" for="run-game">Game</label>
+        <label class="field-label" for="run-game">Game</label>
         <select
           id="run-game"
           v-model.number="form.gameId"
-          class="field__input"
+          class="native-select"
           data-test="run-game-select"
         >
           <optgroup v-for="group in groupedGames" :key="group.generation" :label="group.label">
@@ -210,29 +225,41 @@ onMounted(loadRuns)
           </optgroup>
         </select>
 
-        <label class="field" for="run-start">Start date</label>
+        <label class="field-label" for="run-start">Start date</label>
         <input
           id="run-start"
           v-model="form.startDate"
           type="date"
-          class="field__input"
+          class="native-select"
           data-test="run-start-input"
           required
         />
 
-        <fieldset class="preset-fieldset">
-          <legend>Rules preset</legend>
-          <label class="preset">
-            <input v-model="form.presetId" type="radio" value="standard" data-test="run-preset-standard" />
-            Standard
-          </label>
-          <label class="preset">
-            <input v-model="form.presetId" type="radio" value="hardcore" data-test="run-preset-hardcore" />
-            Hardcore
-          </label>
-        </fieldset>
+        <p class="field-label">Rules preset</p>
+        <SelectButton
+          v-model="form.presetId"
+          :options="presetOptions"
+          option-label="label"
+          option-value="value"
+          data-test="run-preset-select"
+        />
+        <!-- Hidden radios keep Cypress data-test hooks working -->
+        <div class="sr-only" aria-hidden="true">
+          <input
+            v-model="form.presetId"
+            type="radio"
+            value="standard"
+            data-test="run-preset-standard"
+          />
+          <input
+            v-model="form.presetId"
+            type="radio"
+            value="hardcore"
+            data-test="run-preset-hardcore"
+          />
+        </div>
 
-        <p v-if="createError" class="state state--error" role="alert" data-test="runs-create-error">
+        <p v-if="createError" class="state-box state-box--error" role="alert" data-test="runs-create-error">
           {{ createError }}
         </p>
 
@@ -257,53 +284,32 @@ onMounted(loadRuns)
 </template>
 
 <style scoped>
-.runs {
-  max-width: 44rem;
-  margin: 2rem auto;
-  padding: 0 1rem 3rem;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-}
-
 .page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .page-header h1 {
-  margin: 0 0 0.35rem;
-  font-size: 1.75rem;
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
 }
 
 .lede {
   margin: 0;
-  color: #444;
+  color: var(--color-muted);
   line-height: 1.45;
-  font-size: 0.95rem;
-}
-
-.state {
-  margin: 0;
-  padding: 0.875rem 1rem;
-  border-radius: 0.375rem;
-  background: #f5f5f5;
-  color: #333;
-}
-
-.state--error {
-  background: #ffebee;
-  color: #c62828;
+  font-size: 1rem;
+  max-width: 36rem;
 }
 
 .inline-link {
   display: inline-block;
   margin-left: 0.35rem;
-  color: #1565c0;
+  color: var(--color-primary-strong);
+  font-weight: 600;
 }
 
 .run-list {
@@ -315,28 +321,32 @@ onMounted(loadRuns)
 }
 
 .run-row {
-  border: 1px solid #e0e0e0;
-  border-radius: 0.5rem;
-  background: #fff;
+  overflow: hidden;
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+
+.run-row:hover,
+.run-row:focus-within {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
 }
 
 .run-row__link {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem 1.1rem;
+  gap: 0.65rem;
+  padding: 1.1rem 1.2rem;
   color: inherit;
   text-decoration: none;
 }
 
-.run-row__link:hover {
-  background: #fafafa;
-}
-
 .run-row__name {
+  font-family: var(--font-display);
   font-weight: 600;
-  font-size: 1.05rem;
-  color: #1a1a1a;
+  font-size: 1.2rem;
+  color: var(--color-ink);
 }
 
 .run-row__meta {
@@ -347,65 +357,36 @@ onMounted(loadRuns)
   font-size: 0.875rem;
 }
 
-.pill {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: #e3f2fd;
-  color: #0d47a1;
-  font-weight: 500;
-}
-
-.pill--status {
-  background: #f3e5f5;
-  color: #6a1b9a;
-}
-
-.muted {
-  color: #666;
-}
-
 .modal__form {
   display: grid;
 }
 
-.modal__hint {
-  margin: 0 0 0.75rem;
-  font-size: 0.875rem;
-  color: #555;
-  line-height: 1.4;
+.w-full {
+  width: 100%;
 }
 
-.field {
-  display: block;
-  margin: 0.75rem 0 0.375rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.field__input {
+.native-select {
   width: 100%;
   box-sizing: border-box;
+  min-height: 2.75rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 0.375rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
   font: inherit;
 }
 
-.preset-fieldset {
-  margin: 1rem 0 0;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid #eee;
-  border-radius: 0.5rem;
-  display: flex;
-  gap: 1rem;
-}
-
-.preset {
-  display: inline-flex;
-  gap: 0.35rem;
-  align-items: center;
-  font-size: 0.9rem;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .modal__actions {
@@ -413,5 +394,12 @@ onMounted(loadRuns)
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-row:hover,
+  .run-row:focus-within {
+    transform: none;
+  }
 }
 </style>

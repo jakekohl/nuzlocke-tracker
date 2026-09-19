@@ -163,7 +163,8 @@ describe('RunDetailView', () => {
     expect(wrapper.find('[data-test="location-row-2"]').text()).toContain('Route 1')
 
     await openTab(wrapper, 'run-tab-details')
-    expect(wrapper.find('[data-test="run-edit-name"]').element.value).toBe('Blue Softcore')
+    const nameInput = wrapper.find('[data-test="run-edit-name"]')
+    expect(nameInput.element.value ?? nameInput.find('input').element.value).toBe('Blue Softcore')
 
     await openTab(wrapper, 'run-tab-rules')
     expect(wrapper.find('[data-test="run-rule-setMode"]').element.checked).toBe(false)

@@ -1,0 +1,131 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% -20%, var(--color-bg-accent), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 100% 0%, rgb(31 122 92 / 12%), transparent 50%),
+    radial-gradient(circle at 1px 1px, rgb(15 31 26 / 6%) 1px, transparent 0);
+  background-size: auto, auto, 22px 22px;
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+.app-brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: var(--color-primary-strong);
+}
+
+.page {
+  width: min(100% - 2rem, var(--page-max));
+  margin-inline: auto;
+  padding: var(--space-5) 0 var(--space-7);
+}
+
+.page--narrow {
+  width: min(100% - 2rem, var(--page-narrow));
+}
+
+.page-enter {
+  animation: page-enter var(--motion-med) var(--ease-out) both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.surface {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.state-box {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink);
+}
+
+.state-box--error {
+  background: var(--color-danger-soft);
+  border-color: rgb(181 74 58 / 35%);
+  color: var(--color-danger);
+}
+
+.empty-panel {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-border-strong);
+  background: rgb(251 252 249 / 80%);
+}
+
+.empty-panel h2,
+.empty-panel p {
+  margin: 0;
+}
+
+.field-label {
+  display: block;
+  margin: 0.75rem 0 0.35rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+}
+
+.field-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  line-height: 1.4;
+}

@@ -59,12 +59,14 @@ const enabledRuleCount = computed(
         <Button
           label="Standard"
           severity="secondary"
+          outlined
           data-test="run-preset-standard"
           @click="emit('preset', 'standard')"
         />
         <Button
           label="Hardcore"
           severity="secondary"
+          outlined
           data-test="run-preset-hardcore"
           @click="emit('preset', 'hardcore')"
         />
@@ -77,7 +79,7 @@ const enabledRuleCount = computed(
       </div>
     </div>
 
-    <div class="rules-compact" data-test="run-detail-rules-edit">
+    <div class="rules-compact surface" data-test="run-detail-rules-edit">
       <div v-for="group in rulesByCategory" :key="group.category" class="rules-group">
         <h3 class="rules-group__title">{{ group.label }}</h3>
         <ul class="rule-chip-list">
@@ -112,13 +114,13 @@ const enabledRuleCount = computed(
 
 .section__head h2 {
   margin: 0 0 0.2rem;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
 }
 
 .section-lede {
   margin: 0;
-  font-size: 0.8rem;
-  color: #666;
+  font-size: 0.85rem;
+  color: var(--color-muted);
 }
 
 .section__head-actions {
@@ -129,16 +131,17 @@ const enabledRuleCount = computed(
 
 .rules-compact {
   display: grid;
-  gap: 0.85rem;
+  gap: 1rem;
+  padding: 1.1rem 1.15rem;
 }
 
 .rules-group__title {
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.45rem;
   font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #777;
+  color: var(--color-muted);
 }
 
 .rule-chip-list {
@@ -147,25 +150,34 @@ const enabledRuleCount = computed(
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .rule-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.28rem 0.55rem;
-  border: 1px solid #ddd;
-  border-radius: 999px;
-  background: #f7f7f7;
-  font-size: 0.8rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-size: 0.85rem;
   cursor: pointer;
   user-select: none;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.rule-chip input {
+  margin: 0;
 }
 
 .rule-chip--on {
-  border-color: #90caf9;
-  background: #e3f2fd;
-  color: #0d47a1;
+  border-color: rgb(31 122 92 / 40%);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  font-weight: 600;
 }
 </style>

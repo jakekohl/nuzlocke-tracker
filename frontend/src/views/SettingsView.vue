@@ -4,7 +4,7 @@ import { useApiKeyStore } from '@/stores/apiKey'
 import { apiClient } from '@/services/ApiClient'
 
 const apiKeyStore = useApiKeyStore()
-const dialogRef = ref(null)
+const dialogOpen = ref(false)
 const draftKey = ref('')
 const saveMessage = ref('')
 const verifyMessage = ref('')
@@ -15,14 +15,11 @@ const verifying = ref(false)
 function openModal() {
   draftKey.value = apiKeyStore.apiKey
   saveMessage.value = ''
-  dialogRef.value?.showModal()
+  dialogOpen.value = true
 }
 
 function closeModal() {
-  dialogRef.value?.close()
-}
-
-function onDialogClose() {
+  dialogOpen.value = false
   draftKey.value = ''
 }
 
@@ -83,127 +80,134 @@ async function verifyConnection() {
 </script>
 
 <template>
-  <main class="settings">
-    <h1>Settings</h1>
-    <p class="lede">
-      Paste the personal access key issued when your account was created. It is stored encrypted in
-      this tab’s session only — not in a password manager sync or long-lived cookie.
-    </p>
+  <main class="settings page page--narrow" data-test="settings-page">
+    <header class="page-header">
+      <h1>Settings</h1>
+      <p class="lede">
+        Paste the personal access key issued when your account was created. It is stored encrypted in
+        this tab’s session only — not in a password manager sync or long-lived cookie.
+      </p>
+    </header>
 
-    <p v-if="apiKeyStore.isConfigured" class="status status--ok" data-test="api-key-status">
-      Access key is configured
-      <span v-if="apiKeyStore.apiKey" class="prefix">({{ apiKeyStore.apiKey.slice(0, 8) }}…)</span>
-    </p>
-    <p v-else class="status status--warn" data-test="api-key-status">
-      No access key configured. Backend requests will be unauthorized.
-    </p>
+    <section class="access-panel surface" aria-labelledby="access-heading">
+      <h2 id="access-heading">Access</h2>
 
-    <p v-if="saveMessage" class="save-message" role="status" data-test="save-message">
-      {{ saveMessage }}
-    </p>
-    <p v-if="verifyMessage" class="verify-message" role="status" data-test="verify-message">
-      {{ verifyMessage }}
-    </p>
-    <p v-if="verifyError" class="verify-error" role="alert" data-test="verify-error">
-      {{ verifyError }}
-    </p>
-    <p v-if="verifiedUser" class="verified-user" data-test="verified-user">
-      {{ verifiedUser.name || 'User' }} · {{ verifiedUser.email }}
-    </p>
-
-    <div class="actions">
-      <button type="button" class="btn btn--primary" data-test="api-button-set" @click="openModal">
-        {{ apiKeyStore.isConfigured ? 'Update Access Key' : 'Set Access Key' }}
-      </button>
-      <button
+      <Message
         v-if="apiKeyStore.isConfigured"
-        type="button"
-        class="btn"
-        data-test="api-button-clear"
-        @click="clearKey"
+        severity="success"
+        :closable="false"
+        data-test="api-key-status"
       >
-        Clear Key
-      </button>
-      <button
-        type="button"
-        class="btn"
-        data-test="api-button-verify"
-        :disabled="verifying || !apiKeyStore.isConfigured"
-        @click="verifyConnection"
-      >
-        {{ verifying ? 'Verifying…' : 'Verify Connection' }}
-      </button>
-    </div>
+        Access key is configured
+        <span v-if="apiKeyStore.apiKey" class="prefix">({{ apiKeyStore.apiKey.slice(0, 8) }}…)</span>
+      </Message>
+      <Message v-else severity="warn" :closable="false" data-test="api-key-status">
+        No access key configured. Backend requests will be unauthorized.
+      </Message>
 
-    <dialog ref="dialogRef" class="modal" @cancel.prevent="closeModal" @close="onDialogClose">
-      <form method="dialog" class="modal__form" @submit.prevent="saveApiKey">
-        <h2>Access Key</h2>
-        <p class="modal__hint">
+      <p v-if="saveMessage" class="feedback feedback--ok" role="status" data-test="save-message">
+        {{ saveMessage }}
+      </p>
+      <p v-if="verifyMessage" class="feedback feedback--ok" role="status" data-test="verify-message">
+        {{ verifyMessage }}
+      </p>
+      <p v-if="verifyError" class="feedback feedback--error" role="alert" data-test="verify-error">
+        {{ verifyError }}
+      </p>
+      <p v-if="verifiedUser" class="verified-user" data-test="verified-user">
+        {{ verifiedUser.name || 'User' }} · {{ verifiedUser.email }}
+      </p>
+
+      <div class="actions">
+        <Button
+          :label="apiKeyStore.isConfigured ? 'Update Access Key' : 'Set Access Key'"
+          data-test="api-button-set"
+          @click="openModal"
+        />
+        <Button
+          v-if="apiKeyStore.isConfigured"
+          label="Clear Key"
+          severity="secondary"
+          outlined
+          data-test="api-button-clear"
+          @click="clearKey"
+        />
+        <Button
+          :label="verifying ? 'Verifying…' : 'Verify Connection'"
+          severity="secondary"
+          data-test="api-button-verify"
+          :disabled="verifying || !apiKeyStore.isConfigured"
+          :loading="verifying"
+          @click="verifyConnection"
+        />
+      </div>
+    </section>
+
+    <Dialog
+      v-model:visible="dialogOpen"
+      modal
+      header="Access Key"
+      data-test="api-key-dialog"
+      @hide="draftKey = ''"
+    >
+      <form class="modal__form" @submit.prevent="saveApiKey">
+        <p class="field-hint">
           Keys look like <code>nuz_…</code> and are issued once by an admin. Treat them like a
           password.
         </p>
 
-        <label class="field" for="api-key-input">Access Key</label>
-        <input
+        <label class="field-label" for="api-key-input">Access Key</label>
+        <InputText
           id="api-key-input"
           v-model="draftKey"
           type="password"
-          name="apiKey"
           autocomplete="off"
-          class="field__input"
+          class="w-full"
           data-test="api-key-input"
           placeholder="nuz_…"
         />
 
         <div class="modal__actions">
-          <button type="button" data-test="api-button-cancel" class="btn" @click="closeModal">
-            Cancel
-          </button>
-          <button type="submit" data-test="api-button-save" class="btn btn--primary">Save</button>
+          <Button
+            type="button"
+            label="Cancel"
+            severity="secondary"
+            data-test="api-button-cancel"
+            @click="closeModal"
+          />
+          <Button type="submit" label="Save" data-test="api-button-save" />
         </div>
       </form>
-    </dialog>
+    </Dialog>
   </main>
 </template>
 
 <style scoped>
-.settings {
-  max-width: 32rem;
-  margin: 1.5rem auto 2rem;
-  padding: 0 max(1rem, env(safe-area-inset-right, 0)) 0 max(1rem, env(safe-area-inset-left, 0));
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+.page-header {
+  margin-bottom: var(--space-5);
 }
 
-@media (min-width: 40rem) {
-  .settings {
-    margin-top: 2rem;
-  }
+.page-header h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
 }
 
 .lede {
-  margin: 0 0 1.25rem;
-  color: #444;
-  line-height: 1.45;
-  font-size: 0.95rem;
+  margin: 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+  font-size: 1rem;
 }
 
-.status {
-  margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.375rem;
+.access-panel {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
 }
 
-.status--ok {
-  background: #e8f5e9;
-  color: #1b5e20;
-}
-
-.status--warn {
-  background: #fff3e0;
-  color: #e65100;
+.access-panel h2 {
+  margin: 0;
+  font-size: 1.15rem;
 }
 
 .prefix {
@@ -211,109 +215,38 @@ async function verifyConnection() {
   font-size: 0.875rem;
 }
 
-.save-message,
-.verify-message {
-  margin: 0 0 1rem;
-  color: #1565c0;
+.feedback {
+  margin: 0;
+  font-size: 0.95rem;
 }
 
-.verify-error {
-  margin: 0 0 1rem;
-  color: #c62828;
+.feedback--ok {
+  color: var(--color-primary-strong);
+}
+
+.feedback--error {
+  color: var(--color-danger);
 }
 
 .verified-user {
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: 0.9rem;
-  color: #333;
+  color: var(--color-ink);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2.75rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.375rem;
-  background: #fff;
-  cursor: pointer;
-  font: inherit;
-}
-
-@media (max-width: 39.99rem) {
-  .actions .btn {
-    flex: 1 1 100%;
-  }
-}
-
-.btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.btn--primary {
-  border-color: #1976d2;
-  background: #1976d2;
-  color: #fff;
-}
-
-.btn--primary:hover:not(:disabled) {
-  background: #1565c0;
-}
-
-.modal {
-  width: min(100% - 2rem, 24rem);
-  max-height: min(90dvh, 100% - 2rem);
-  margin: auto;
-  padding: 0;
-  overflow: auto;
-  border: none;
-  border-radius: 0.5rem;
-  box-shadow: 0 1rem 2rem rgb(0 0 0 / 20%);
-}
-
-.modal::backdrop {
-  background: rgb(0 0 0 / 45%);
+  margin-top: 0.25rem;
 }
 
 .modal__form {
-  padding: 1.25rem;
+  display: grid;
 }
 
-.modal__form h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.25rem;
-}
-
-.modal__hint {
-  margin: 0 0 1rem;
-  font-size: 0.875rem;
-  color: #555;
-  line-height: 1.4;
-}
-
-.field {
-  display: block;
-  margin-bottom: 0.375rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.field__input {
+.w-full {
   width: 100%;
-  min-height: 2.75rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 0.375rem;
-  font: inherit;
-  font-size: 1rem;
 }
 
 .modal__actions {
@@ -325,8 +258,8 @@ async function verifyConnection() {
 }
 
 @media (max-width: 39.99rem) {
-  .modal__actions .btn {
-    flex: 1 1 calc(50% - 0.25rem);
+  .actions :deep(.p-button) {
+    flex: 1 1 100%;
   }
 }
 </style>

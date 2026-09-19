@@ -1,75 +1,172 @@
-<script setup></script>
+<script setup>
+import { computed } from 'vue'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { useApiKeyStore } from '@/stores/apiKey'
+
+const route = useRoute()
+const apiKeyStore = useApiKeyStore()
+
+const keyConfigured = computed(() => apiKeyStore.isConfigured)
+const pageKey = computed(() => route.fullPath)
+</script>
 
 <template>
   <div class="app">
-    <nav class="app-nav" data-test="app-nav" aria-label="Main">
-      <RouterLink to="/" data-test="nav-link-home">Home</RouterLink>
-      <RouterLink to="/runs" data-test="nav-link-runs">Runs</RouterLink>
-      <RouterLink to="/settings" data-test="nav-link-settings">Settings</RouterLink>
-    </nav>
-    <RouterView />
+    <header class="app-shell" data-test="app-nav">
+      <div class="app-shell__inner">
+        <RouterLink to="/" class="app-brand" data-test="nav-brand">
+          Nuzlocke Tracker
+        </RouterLink>
+
+        <nav class="app-nav" aria-label="Main">
+          <RouterLink to="/" class="app-nav__link" data-test="nav-link-home">Home</RouterLink>
+          <RouterLink to="/runs" class="app-nav__link" data-test="nav-link-runs">Runs</RouterLink>
+          <RouterLink to="/settings" class="app-nav__link" data-test="nav-link-settings">
+            Settings
+          </RouterLink>
+        </nav>
+
+        <RouterLink
+          to="/settings"
+          class="key-chip"
+          :class="keyConfigured ? 'key-chip--ok' : 'key-chip--warn'"
+          data-test="nav-key-status"
+        >
+          <span class="key-chip__dot" aria-hidden="true" />
+          {{ keyConfigured ? 'Key set' : 'Key needed' }}
+        </RouterLink>
+      </div>
+    </header>
+
+    <RouterView :key="pageKey" class="page-enter" />
   </div>
 </template>
 
 <style>
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  margin: 0;
-  background: #f7f8fb;
-  color: #1a1a1a;
-}
-
 .app {
   min-height: 100dvh;
   padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.app-shell {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid var(--color-border);
+  background: rgb(251 252 249 / 88%);
+  backdrop-filter: blur(12px);
+}
+
+.app-shell__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  width: min(100% - 2rem, var(--page-max));
+  min-height: var(--nav-height);
+  margin-inline: auto;
+  padding: max(0.5rem, env(safe-area-inset-top, 0)) 0 0.5rem;
+}
+
+.app-brand {
+  margin-right: auto;
+  color: var(--color-ink);
+  text-decoration: none;
+  font-size: 1.2rem;
+  line-height: 1.2;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.app-brand:hover,
+.app-brand:focus-visible {
+  color: var(--color-primary-strong);
+  outline: none;
 }
 
 .app-nav {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem 0.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  padding: max(0.5rem, env(safe-area-inset-top, 0)) max(1rem, env(safe-area-inset-right, 0)) 0.5rem
-    max(1rem, env(safe-area-inset-left, 0));
-  border-bottom: 1px solid #e0e0e0;
-  background: #fff;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  gap: 0.25rem;
 }
 
-.app-nav a {
+.app-nav__link {
   display: inline-flex;
   align-items: center;
-  min-height: 2.75rem;
-  padding: 0.5rem 0.75rem;
-  color: #1976d2;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  color: var(--color-muted);
   text-decoration: none;
-  font-weight: 500;
-  border-radius: 0.375rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
 }
 
-.app-nav a:hover,
-.app-nav a:focus-visible {
-  background: #f0f7ff;
+.app-nav__link:hover,
+.app-nav__link:focus-visible {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
   outline: none;
 }
 
-.app-nav a.router-link-active {
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+.app-nav__link.router-link-exact-active,
+.app-nav__link.router-link-active:not([href='/']) {
+  background: var(--color-ink);
+  color: #fff;
+}
+
+.key-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
+}
+
+.key-chip__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.key-chip--ok {
+  color: var(--color-primary-strong);
+  border-color: rgb(31 122 92 / 30%);
+  background: var(--color-primary-soft);
+}
+
+.key-chip--warn {
+  color: var(--color-warn);
+  border-color: rgb(154 107 31 / 35%);
+  background: var(--color-warn-soft);
+}
+
+@media (max-width: 36rem) {
+  .app-shell__inner {
+    gap: 0.35rem 0.5rem;
+  }
+
+  .app-brand {
+    width: 100%;
+    margin-right: 0;
+  }
+
+  .key-chip {
+    margin-left: auto;
+  }
 }
 </style>

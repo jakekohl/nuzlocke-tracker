@@ -30,7 +30,17 @@ Cypress.Commands.add('openRunDetailFromList', () => {
 })
 
 Cypress.Commands.add('primeSelectOption', (dataTest, label) => {
-  cy.getDataTest(dataTest).click()
+  cy.ensureDataTestVisible(dataTest).click()
   cy.get('.p-select-overlay').should('be.visible')
-  cy.contains('.p-select-option', label).click()
+  cy.contains('.p-select-option', label).scrollIntoView().should('be.visible').click()
+})
+
+Cypress.Commands.add('waitForEncounterDialogClosed', () => {
+  cy.get('body').find('[data-test=encounter-dialog]:visible').should('have.length', 0)
+})
+
+Cypress.Commands.add('openPartyFilter', (filterTestId) => {
+  cy.clickDataTest('run-tab-party')
+  cy.clickDataTest(filterTestId)
+  cy.getDataTest('run-party').should('be.visible')
 })

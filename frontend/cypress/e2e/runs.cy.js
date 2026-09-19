@@ -18,11 +18,11 @@ describe('Runs pages', () => {
     cy.openRunDetailFromList()
 
     cy.getDataTest('run-detail-name').should('have.text', 'Test Run')
-    cy.getDataTest('run-detail-status').should('have.text', 'Not started')
+    cy.getDataTest('run-detail-status').should('contain.text', 'Not started')
     cy.getDataTest('run-encounters-list').should('be.visible')
     cy.getDataTest('encounter-row-1').should('contain.text', 'Bulba')
     cy.getDataTest('encounter-row-1').should('contain.text', 'Pallet Town (Starter)')
-    cy.getDataTest('encounter-status-1').should('have.text', 'Alive')
+    cy.getDataTest('encounter-status-1').should('contain.text', 'Alive')
 
     cy.clickDataTest('run-tab-details')
     cy.getDataTest('run-edit-notes').should('have.value', '')

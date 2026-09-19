@@ -6,29 +6,30 @@ defineProps({
   dead: { type: Number, required: true },
   missed: { type: Number, required: true },
 })
+
+const emit = defineEmits(['select'])
+
+const items = [
+  { key: 'locations', label: 'Open locations', prop: 'remaining', test: 'stat-remaining' },
+  { key: 'team', label: 'Team', prop: 'alive', test: 'stat-alive' },
+  { key: 'box', label: 'Box', prop: 'boxed', test: 'stat-boxed' },
+  { key: 'graveyard', label: 'Graveyard', prop: 'dead', test: 'stat-dead' },
+  { key: 'missed', label: 'Missed / skipped', prop: 'missed', test: 'stat-missed' },
+]
 </script>
 
 <template>
   <ul class="stats" data-test="run-stats">
-    <li>
-      <span class="stats__value">{{ remaining }}</span>
-      <span class="stats__label">Open locations</span>
-    </li>
-    <li>
-      <span class="stats__value">{{ alive }}</span>
-      <span class="stats__label">Team</span>
-    </li>
-    <li>
-      <span class="stats__value">{{ boxed }}</span>
-      <span class="stats__label">Box</span>
-    </li>
-    <li>
-      <span class="stats__value">{{ dead }}</span>
-      <span class="stats__label">Graveyard</span>
-    </li>
-    <li>
-      <span class="stats__value">{{ missed }}</span>
-      <span class="stats__label">Missed / skipped</span>
+    <li v-for="item in items" :key="item.key">
+      <button
+        type="button"
+        class="stats__btn"
+        :data-test="item.test"
+        @click="emit('select', item.key)"
+      >
+        <span class="stats__value">{{ $props[item.prop] }}</span>
+        <span class="stats__label">{{ item.label }}</span>
+      </button>
     </li>
   </ul>
 </template>
@@ -36,28 +37,58 @@ defineProps({
 <style scoped>
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
   list-style: none;
   margin: 0 0 1rem;
-  padding: 0;
+  padding: 0.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: rgb(251 252 249 / 85%);
+  box-shadow: var(--shadow-sm);
 }
 
-.stats li {
-  padding: 0.75rem 0.85rem;
-  border: 1px solid #e6e6e6;
-  border-radius: 0.65rem;
-  background: #fff;
+.stats__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.65rem 0.7rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: background var(--motion-fast) var(--ease-out);
+}
+
+.stats__btn:hover,
+.stats__btn:focus-visible {
+  background: var(--color-primary-soft);
+  outline: none;
 }
 
 .stats__value {
-  display: block;
+  font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-ink);
 }
 
 .stats__label {
-  font-size: 0.75rem;
-  color: #666;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  line-height: 1.2;
+}
+
+@media (max-width: 40rem) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

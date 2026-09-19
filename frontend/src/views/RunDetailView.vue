@@ -8,6 +8,7 @@ import { formatRunStatus, runStatusOptions, runStatuses } from '@/constants/runS
 import { encounterStatuses } from '@/constants/encounterStatuses'
 import { formatUnixDate, todayIsoDate } from '@/lib/dates'
 import { shouldWarnDupes } from '@/lib/dupes'
+import { runStatusSeverity } from '@/lib/statusUi'
 import RunStatsStrip from '@/components/RunStatsStrip.vue'
 import LocationChecklist from '@/components/LocationChecklist.vue'
 import PokemonRoster from '@/components/PokemonRoster.vue'
@@ -33,16 +34,35 @@ const savingRules = ref(false)
 const deleting = ref(false)
 const addingEncounter = ref(false)
 const activeTab = ref('locations')
+const partyFilter = ref(encounterStatuses.alive)
 const tabs = [
   { id: 'locations', label: 'Locations', test: 'run-tab-locations' },
-  { id: 'team', label: 'Team', test: 'run-tab-team' },
-  { id: 'box', label: 'Box', test: 'run-tab-box' },
-  { id: 'graveyard', label: 'Graveyard', test: 'run-tab-graveyard' },
+  { id: 'party', label: 'Party', test: 'run-tab-party' },
   { id: 'rules', label: 'Rules', test: 'run-tab-rules' },
   { id: 'details', label: 'Details', test: 'run-tab-details' },
 ]
+const partyFilters = [
+  { id: 'team', label: 'Alive', status: encounterStatuses.alive, test: 'run-tab-team' },
+  { id: 'box', label: 'Boxed', status: encounterStatuses.boxed, test: 'run-tab-box' },
+  { id: 'graveyard', label: 'Dead', status: encounterStatuses.dead, test: 'run-tab-graveyard' },
+]
 const encounterDialogOpen = ref(false)
 const loggingRoute = ref(null)
+
+function openPartyFilter(status) {
+  activeTab.value = 'party'
+  partyFilter.value = status
+}
+
+function onStatSelect(key) {
+  if (key === 'locations' || key === 'missed') {
+    activeTab.value = 'locations'
+    return
+  }
+  if (key === 'team') openPartyFilter(encounterStatuses.alive)
+  else if (key === 'box') openPartyFilter(encounterStatuses.boxed)
+  else if (key === 'graveyard') openPartyFilter(encounterStatuses.dead)
+}
 
 const editDetails = ref({ name: '', status: runStatuses.notStarted, notes: '', startDate: '' })
 const editRules = ref({})
@@ -126,7 +146,7 @@ function syncEditorsFromRun(next) {
     notes: next.notes ?? '',
     startDate: unixToDateInput(next.startDate),
   }
-  editRules.value = { ...(next.rules ?? {}) }
+  editRules.value = { ...next.rules }
 }
 
 function routeLabel(id) {
@@ -376,28 +396,36 @@ watch(runId, loadRun)
 </script>
 
 <template>
-  <main class="run-detail" data-test="run-detail-page">
+  <main class="run-detail page" data-test="run-detail-page">
     <p class="back">
       <RouterLink to="/runs" data-test="run-detail-back">← All runs</RouterLink>
     </p>
 
-    <p v-if="loading" class="state" data-test="run-detail-loading">Loading run…</p>
-    <p v-else-if="error" class="state state--error" role="alert" data-test="run-detail-error">
+    <p v-if="loading" class="state-box" data-test="run-detail-loading">Loading run…</p>
+    <p v-else-if="error" class="state-box state-box--error" role="alert" data-test="run-detail-error">
       {{ error }}
-      <RouterLink v-if="!hasKey" to="/settings" class="inline-link" data-test="run-detail-link-settings">
+      <RouterLink
+        v-if="!hasKey"
+        to="/settings"
+        class="inline-link"
+        data-test="run-detail-link-settings"
+      >
         Open Settings
       </RouterLink>
     </p>
 
     <template v-else-if="run">
-      <header class="hero" data-test="run-detail-header">
+      <header class="hero surface" data-test="run-detail-header">
         <div class="hero__text">
           <p class="eyebrow">{{ formatGame(run.gameId) }}</p>
           <h1 data-test="run-detail-name">{{ run.name }}</h1>
           <div class="hero__meta">
-            <span class="pill pill--status" data-test="run-detail-status">
-              {{ formatRunStatus(run.status) }}
-            </span>
+            <Tag
+              :value="formatRunStatus(run.status)"
+              :severity="runStatusSeverity(run.status)"
+              rounded
+              data-test="run-detail-status"
+            />
             <span class="muted">Started {{ formatUnixDate(run.startDate) }}</span>
           </div>
         </div>
@@ -411,7 +439,12 @@ watch(runId, loadRun)
         />
       </header>
 
-      <p v-if="actionError" class="state state--error" role="alert" data-test="run-detail-action-error">
+      <p
+        v-if="actionError"
+        class="state-box state-box--error"
+        role="alert"
+        data-test="run-detail-action-error"
+      >
         {{ actionError }}
       </p>
 
@@ -421,6 +454,7 @@ watch(runId, loadRun)
         :boxed="boxedCount"
         :dead="deadCount"
         :missed="missedCount"
+        @select="onStatSelect"
       />
 
       <div class="tab-bar" data-test="run-tabs" role="tablist">
@@ -448,33 +482,31 @@ watch(runId, loadRun)
         @status="setEncounterStatus"
         @remove="removeEncounter"
       />
-      <PokemonRoster
-        v-else-if="activeTab === 'team'"
-        :encounters="encounters"
-        :pokemon-by-id="pokemonById"
-        :route-by-id="routeById"
-        :status-filter="encounterStatuses.alive"
-        @status="setEncounterStatus"
-        @remove="removeEncounter"
-      />
-      <PokemonRoster
-        v-else-if="activeTab === 'box'"
-        :encounters="encounters"
-        :pokemon-by-id="pokemonById"
-        :route-by-id="routeById"
-        :status-filter="encounterStatuses.boxed"
-        @status="setEncounterStatus"
-        @remove="removeEncounter"
-      />
-      <PokemonRoster
-        v-else-if="activeTab === 'graveyard'"
-        :encounters="encounters"
-        :pokemon-by-id="pokemonById"
-        :route-by-id="routeById"
-        :status-filter="encounterStatuses.dead"
-        @status="setEncounterStatus"
-        @remove="removeEncounter"
-      />
+
+      <section v-else-if="activeTab === 'party'" class="party-panel" data-test="run-party">
+        <div class="party-filters" role="group" aria-label="Party filter">
+          <button
+            v-for="filter in partyFilters"
+            :key="filter.id"
+            type="button"
+            class="party-filters__btn"
+            :class="{ 'party-filters__btn--on': partyFilter === filter.status }"
+            :data-test="filter.test"
+            @click="openPartyFilter(filter.status)"
+          >
+            {{ filter.label }}
+          </button>
+        </div>
+        <PokemonRoster
+          :encounters="encounters"
+          :pokemon-by-id="pokemonById"
+          :route-by-id="routeById"
+          :status-filter="partyFilter"
+          @status="setEncounterStatus"
+          @remove="removeEncounter"
+        />
+      </section>
+
       <RulesEditor
         v-else-if="activeTab === 'rules'"
         v-model="editRules"
@@ -483,7 +515,8 @@ watch(runId, loadRun)
         @save="saveRules"
         @preset="applyPreset"
       />
-      <section v-else-if="activeTab === 'details'" class="panel" aria-labelledby="details-heading">
+
+      <section v-else-if="activeTab === 'details'" class="panel surface" aria-labelledby="details-heading">
         <div class="section__head">
           <h2 id="details-heading">Details</h2>
           <Button
@@ -495,36 +528,37 @@ watch(runId, loadRun)
         </div>
         <div class="details-grid">
           <div class="field-block">
-            <label class="field" for="edit-name">Name</label>
-            <input id="edit-name" v-model="editDetails.name" class="field__input" data-test="run-edit-name" />
+            <label class="field-label" for="edit-name">Name</label>
+            <InputText id="edit-name" v-model="editDetails.name" class="w-full" data-test="run-edit-name" />
           </div>
           <div class="field-block">
-            <label class="field" for="edit-status">Status</label>
+            <label class="field-label" for="edit-status">Status</label>
             <Select
               input-id="edit-status"
               v-model="editDetails.status"
               :options="runStatusOptions"
               option-label="label"
               option-value="value"
+              class="w-full"
               data-test="run-edit-status"
             />
           </div>
           <div class="field-block">
-            <label class="field" for="edit-start">Start date</label>
+            <label class="field-label" for="edit-start">Start date</label>
             <input
               id="edit-start"
               v-model="editDetails.startDate"
               type="date"
-              class="field__input"
+              class="native-input"
               data-test="run-edit-start"
             />
           </div>
           <div class="field-block field-block--full">
-            <label class="field" for="edit-notes">Notes</label>
-            <textarea
+            <label class="field-label" for="edit-notes">Notes</label>
+            <Textarea
               id="edit-notes"
               v-model="editDetails.notes"
-              class="field__input"
+              class="w-full"
               rows="4"
               data-test="run-edit-notes"
             />
@@ -547,66 +581,50 @@ watch(runId, loadRun)
 </template>
 
 <style scoped>
-.run-detail {
-  max-width: 64rem;
-  margin: 2rem auto;
-  padding: 0 1rem 3rem;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-}
-
 .back {
-  margin: 0 0 1.25rem;
+  margin: 0 0 1rem;
 }
 
 .back a {
-  color: #1976d2;
+  color: var(--color-primary-strong);
   text-decoration: none;
-  font-weight: 500;
-}
-
-.state {
-  margin: 0 0 1rem;
-  padding: 0.875rem 1rem;
-  border-radius: 0.375rem;
-  background: #f5f5f5;
-  color: #333;
-}
-
-.state--error {
-  background: #ffebee;
-  color: #c62828;
+  font-weight: 600;
 }
 
 .inline-link {
   margin-left: 0.35rem;
-  color: #1565c0;
+  color: var(--color-primary-strong);
+  font-weight: 600;
 }
 
 .hero {
+  position: sticky;
+  top: calc(var(--nav-height) + 0.25rem);
+  z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.15rem;
+  backdrop-filter: blur(10px);
+  background: rgb(251 252 249 / 92%);
 }
 
 .eyebrow {
   margin: 0 0 0.35rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #1976d2;
+  color: var(--color-primary-strong);
 }
 
 .hero h1 {
   margin: 0 0 0.5rem;
-  font-size: clamp(1.75rem, 4vw, 2.25rem);
-  line-height: 1.2;
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  line-height: 1.15;
 }
 
 .hero__meta {
@@ -617,40 +635,78 @@ watch(runId, loadRun)
   font-size: 0.9rem;
 }
 
-.pill {
-  display: inline-block;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-weight: 500;
-}
-
-.pill--status {
-  background: #f3e5f5;
-  color: #6a1b9a;
+.muted {
+  color: var(--color-muted);
 }
 
 .tab-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 0.35rem;
   margin: 0 0 1rem;
-  border-bottom: 1px solid #e6e6e6;
+  padding: 0.3rem;
+  border-radius: var(--radius-pill);
+  background: rgb(15 31 26 / 5%);
 }
 
 .tab-bar__btn {
-  padding: 0.55rem 0.85rem;
+  padding: 0.55rem 0.95rem;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-pill);
   background: transparent;
   cursor: pointer;
   font: inherit;
-  color: #555;
+  font-weight: 600;
+  color: var(--color-muted);
+  transition:
+    background var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.tab-bar__btn:hover,
+.tab-bar__btn:focus-visible {
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+  outline: none;
 }
 
 .tab-bar__btn--on {
-  color: #1565c0;
-  border-bottom-color: #1565c0;
+  background: var(--color-ink);
+  color: #fff;
+}
+
+.party-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.party-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.15rem;
+}
+
+.party-filters__btn {
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-muted);
+  cursor: pointer;
+  font: inherit;
   font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.party-filters__btn--on {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.panel {
+  padding: 1.1rem 1.15rem;
 }
 
 .section__head {
@@ -663,12 +719,35 @@ watch(runId, loadRun)
 
 .section__head h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
 }
 
 .details-grid {
   display: grid;
   gap: 0.65rem 0.85rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.native-input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  font-size: 0.8rem;
 }
 
 @media (min-width: 28rem) {
@@ -679,21 +758,5 @@ watch(runId, loadRun)
   .field-block--full {
     grid-column: 1 / -1;
   }
-}
-
-.field {
-  display: block;
-  margin-bottom: 0.35rem;
-  font-weight: 600;
-  font-size: 0.8rem;
-}
-
-.details-grid .field__input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid #ccc;
-  border-radius: 0.375rem;
-  font: inherit;
 }
 </style>

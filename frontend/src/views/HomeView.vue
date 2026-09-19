@@ -3,19 +3,22 @@ import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <main class="home" data-test="home-page">
+  <main class="home page page--narrow" data-test="home-page">
     <section class="hero">
-      <p class="eyebrow">Personal playthrough tracker</p>
-      <h1>Nuzlocke Tracker</h1>
+      <h1 class="hero__brand">Nuzlocke Tracker</h1>
       <p class="lede">
         Keep your Nuzlocke runs organized — locations, catches with sprites, team, box, and the
         graveyard, for every mainline Pokémon game.
       </p>
       <div class="hero__actions">
-        <RouterLink to="/runs" class="btn btn--primary" data-test="home-cta-runs">
-          View runs
+        <RouterLink v-slot="{ navigate }" to="/runs" custom>
+          <Button
+            label="Open runs"
+            data-test="home-cta-runs"
+            @click="navigate"
+          />
         </RouterLink>
-        <RouterLink to="/settings" class="btn" data-test="home-cta-settings">
+        <RouterLink to="/settings" class="text-link" data-test="home-cta-settings">
           Settings
         </RouterLink>
       </div>
@@ -24,15 +27,15 @@ import { RouterLink } from 'vue-router'
     <section class="features" aria-labelledby="features-heading">
       <h2 id="features-heading">What you can track</h2>
       <ul class="feature-list">
-        <li class="feature-card">
+        <li>
           <h3>Locations</h3>
           <p>Fill in a checklist of routes and areas as you play, including gifts and statics.</p>
         </li>
-        <li class="feature-card">
+        <li>
           <h3>Team, box &amp; graveyard</h3>
           <p>See living Pokémon, boxed backups, and fallen teammates with sprites.</p>
         </li>
-        <li class="feature-card">
+        <li>
           <h3>Rules you actually use</h3>
           <p>Standard or hardcore presets, plus clauses like dupes, shinies, and nicknames.</p>
         </li>
@@ -43,134 +46,104 @@ import { RouterLink } from 'vue-router'
 
 <style scoped>
 .home {
-  max-width: 48rem;
-  margin: 0 auto;
-  padding: 1.5rem max(1rem, env(safe-area-inset-right, 0)) 3rem
-    max(1rem, env(safe-area-inset-left, 0));
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-}
-
-@media (min-width: 40rem) {
-  .home {
-    padding-top: 2.5rem;
-  }
+  padding-top: clamp(2.5rem, 8vw, 5rem);
 }
 
 .hero {
-  margin-bottom: 3rem;
-  text-align: center;
+  min-height: min(70dvh, 32rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
 }
 
-.eyebrow {
-  margin: 0 0 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #1976d2;
-}
-
-.hero h1 {
-  margin: 0 0 1rem;
-  font-size: clamp(2rem, 5vw, 2.75rem);
-  line-height: 1.15;
-  color: #1a1a1a;
+.hero__brand {
+  margin: 0;
+  font-size: clamp(2.6rem, 8vw, 4rem);
+  line-height: 1.05;
+  color: var(--color-ink);
 }
 
 .lede {
-  margin: 0 auto 1.5rem;
-  max-width: 36rem;
-  color: #444;
+  margin: 0;
+  max-width: 34rem;
+  color: var(--color-muted);
   line-height: 1.55;
-  font-size: 1.05rem;
+  font-size: 1.125rem;
 }
 
 .hero__actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.btn {
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-height: 2.75rem;
-  padding: 0.625rem 1.25rem;
-  border: 1px solid #ccc;
-  border-radius: 0.375rem;
-  background: #fff;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 500;
+  gap: 0.85rem 1.25rem;
+}
+
+.text-link {
+  font-weight: 600;
   text-decoration: none;
+  color: var(--color-primary-strong);
 }
 
-@media (max-width: 39.99rem) {
-  .hero__actions .btn {
-    width: 100%;
-    max-width: 20rem;
-  }
-}
-
-.btn--primary {
-  border-color: #1976d2;
-  background: #1976d2;
-  color: #fff;
-}
-
-.btn--primary:hover {
-  background: #1565c0;
-  border-color: #1565c0;
-}
-
-.btn:not(.btn--primary):hover {
-  background: #f5f5f5;
+.text-link:hover,
+.text-link:focus-visible {
+  text-decoration: underline;
+  outline: none;
 }
 
 .features h2 {
   margin: 0 0 1.25rem;
-  font-size: 1.25rem;
-  text-align: center;
-  color: #333;
+  font-size: 1.35rem;
+  color: var(--color-ink);
 }
 
 .feature-list {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
+  border-top: 1px solid var(--color-border);
 }
 
 @media (min-width: 40rem) {
   .feature-list {
     grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
   }
 }
 
-.feature-card {
-  padding: 1.25rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 0.5rem;
-  background: #fafafa;
+.feature-list li {
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--color-border);
 }
 
-.feature-card h3 {
-  margin: 0 0 0.5rem;
-  font-size: 1rem;
-  color: #1a1a1a;
+@media (min-width: 40rem) {
+  .feature-list li {
+    border-top: none;
+    padding-top: 0;
+    border-left: 1px solid var(--color-border);
+    padding-left: 1.25rem;
+  }
+
+  .feature-list li:first-child {
+    border-left: none;
+    padding-left: 0;
+  }
 }
 
-.feature-card p {
+.feature-list h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.05rem;
+  color: var(--color-ink);
+}
+
+.feature-list p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   line-height: 1.45;
-  color: #555;
+  color: var(--color-muted);
 }
 </style>

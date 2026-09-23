@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4c3a8f"/>
+      <stop offset="100%" stop-color="#1c1633"/>
+    </linearGradient>
+  </defs>
+
+  <!-- gem/badge hexagon -->
+  <polygon points="256,46 437.9,151 437.9,361 256,466 74.1,361 74.1,151"
+           fill="url(#badgeGrad)" stroke="#8b7cd8" stroke-width="6"/>
+
+  <!-- inner hairline -->
+  <polygon points="256,74 411.9,164.5 411.9,347.5 256,438 100.1,347.5 100.1,164.5"
+           fill="none" stroke="#8b7cd8" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- N-shaped route monogram -->
+  <path d="M172 342 L172 176 L340 342 L340 176"
+        fill="none" stroke="#f5f3ff" stroke-width="26"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- waypoint marker (encounter point) -->
+  <circle cx="172" cy="176" r="16" fill="#4fd1c5"/>
+</svg>

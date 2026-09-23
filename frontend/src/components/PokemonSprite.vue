@@ -51,8 +51,8 @@ const initials = computed(() => pokemonInitials(props.name))
 }
 
 .sprite--lg {
-  width: 5rem;
-  height: 5rem;
+  width: 5.75rem;
+  height: 5.75rem;
 }
 
 .sprite img {

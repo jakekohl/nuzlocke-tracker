@@ -39,5 +39,10 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Nuzlocke Tracker')
     expect(wrapper.text()).toContain('Open runs')
+    expect(wrapper.findAll('[data-test="brand-logo"]').length).toBeGreaterThanOrEqual(2)
+    expect(wrapper.find('[data-test="site-footer"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="footer-github"]').attributes('href')).toBe(
+      'https://github.com/jakekohl/nuzlocke-tracker',
+    )
   })
 })

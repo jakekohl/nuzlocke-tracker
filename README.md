@@ -1,5 +1,13 @@
 # Nuzlocke Tracker
 
+<p align="center">
+  <img src="docs/brand/nuzlocke-tracker-logo.svg" alt="Nuzlocke Tracker" width="420" />
+</p>
+
+<p align="center">
+  <img src="docs/brand/nuzlocke-tracker-icon.svg" alt="" width="72" />
+</p>
+
 Personal project to track details about Nuzlocke playthroughs.
 
 ## Getting Started
@@ -74,4 +82,6 @@ In production, set `CORS_ORIGINS` on the backend to your real frontend origin(s)
 
 ## Disclaimers
 
-This is a personal project and there is no guarantee for quality or build success.
+Unofficial fan project — not affiliated with Nintendo, Game Freak, Creatures Inc., or The Pokémon Company. Pokémon and related marks belong to their respective owners.
+
+Provided as-is for personal, non-commercial use with no warranties. Authors are not liable for damages or data loss. See the site footer for the full disclaimer text.

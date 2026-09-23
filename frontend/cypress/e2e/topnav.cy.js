@@ -28,4 +28,16 @@ describe('Top navigation', () => {
       cy.url().should('include', link.url)
     })
   }
+
+  it('should show a footer GitHub link to the repo', () => {
+    cy.getDataTest('site-footer').should('be.visible')
+    cy.getDataTest('footer-github')
+      .should('be.visible')
+      .and('have.attr', 'href', 'https://github.com/jakekohl/nuzlocke-tracker')
+      .and('have.attr', 'target', '_blank')
+  })
+
+  it('should show the brand logo in the nav', () => {
+    cy.getDataTest('nav-brand').find('[data-test=brand-logo]').should('be.visible')
+  })
 })

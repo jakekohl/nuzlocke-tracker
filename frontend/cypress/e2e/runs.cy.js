@@ -22,6 +22,10 @@ describe('Runs pages', () => {
     cy.getDataTest('run-encounters-list').should('be.visible')
     cy.getDataTest('encounter-row-1').should('contain.text', 'Bulba')
     cy.getDataTest('encounter-row-1').should('contain.text', 'Pallet Town (Starter)')
+    cy.getDataTest('encounter-row-1').find('[data-test=encounter-timestamps]').should('be.visible')
+    cy.getDataTest('encounter-row-1').find('[data-test=encounter-caught-at]').should('not.have.text', '—')
+    cy.getDataTest('encounter-row-1').find('[data-test=encounter-updated-at]').should('not.have.text', '—')
+    cy.getDataTest('encounter-row-1').find('[data-test=encounter-notes]').should('contain.text', 'Starter pick')
     cy.getDataTest('encounter-status-1').should('contain.text', 'Alive')
 
     cy.clickDataTest('run-tab-details')

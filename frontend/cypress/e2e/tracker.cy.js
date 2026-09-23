@@ -79,6 +79,9 @@ describe('Tracker happy paths', () => {
     cy.wait('@createEncounter')
     cy.waitForEncounterDialogClosed()
     cy.ensureDataTestVisible('encounter-row-21').should('contain.text', 'Bulba')
+    cy.getDataTest('encounter-row-21').find('[data-test=encounter-timestamps]').should('be.visible')
+    cy.getDataTest('encounter-row-21').find('[data-test=encounter-status-time-label]').should('have.text', 'Alive')
+    cy.getDataTest('encounter-row-21').should('contain.text', 'Caught')
     cy.getDataTest('pokemon-sprite').should('exist')
 
     cy.openPartyFilter('run-tab-team')
@@ -89,12 +92,18 @@ describe('Tracker happy paths', () => {
     cy.wait('@updateEncounter')
     cy.openPartyFilter('run-tab-box')
     cy.getDataTest('roster-list').should('contain.text', 'Bulba')
+    cy.getDataTest('roster-list')
+      .find('[data-test=encounter-status-time-label]')
+      .should('have.text', 'Boxed')
 
     cy.ensureDataTestVisible('encounter-status-select-21').click()
     cy.contains('.p-select-option', 'Dead').scrollIntoView().should('be.visible').click()
     cy.wait('@updateEncounter')
     cy.openPartyFilter('run-tab-graveyard')
     cy.getDataTest('roster-list').should('contain.text', 'Bulba')
+    cy.getDataTest('roster-list')
+      .find('[data-test=encounter-status-time-label]')
+      .should('have.text', 'Dead')
   })
 
   it('marks a location missed and saves a rule toggle', () => {

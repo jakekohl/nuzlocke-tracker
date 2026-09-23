@@ -1,6 +1,8 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
+import BrandLogo from '@/components/BrandLogo.vue'
+import SiteFooter from '@/components/SiteFooter.vue'
 import { useApiKeyStore } from '@/stores/apiKey'
 
 const route = useRoute()
@@ -15,7 +17,8 @@ const pageKey = computed(() => route.fullPath)
     <header class="app-shell" data-test="app-nav">
       <div class="app-shell__inner">
         <RouterLink to="/" class="app-brand" data-test="nav-brand">
-          Nuzlocke Tracker
+          <BrandLogo size="sm" decorative />
+          <span class="app-brand__text">Nuzlocke Tracker</span>
         </RouterLink>
 
         <nav class="app-nav" aria-label="Main">
@@ -39,13 +42,15 @@ const pageKey = computed(() => route.fullPath)
     </header>
 
     <RouterView :key="pageKey" class="page-enter" />
+    <SiteFooter />
   </div>
 </template>
 
 <style>
 .app {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
-  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .app-shell {
@@ -69,12 +74,21 @@ const pageKey = computed(() => route.fullPath)
 }
 
 .app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   margin-right: auto;
   color: var(--color-ink);
   text-decoration: none;
   font-size: 1.2rem;
   line-height: 1.2;
   transition: color var(--motion-fast) var(--ease-out);
+}
+
+.app-brand__text {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .app-brand:hover,

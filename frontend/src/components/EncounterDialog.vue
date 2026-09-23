@@ -15,6 +15,13 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'submit'])
 
+/** Desktop default; breakpoints tighten toward full-bleed on smaller screens. */
+const dialogStyle = { width: 'min(42rem, 56vw)' }
+const dialogBreakpoints = {
+  '960px': 'min(36rem, 78vw)',
+  '640px': '95vw',
+}
+
 const speciesRequired = computed(
   () =>
     props.form.status !== encounterStatuses.failed &&
@@ -29,6 +36,8 @@ const speciesRequired = computed(
     :header="route ? `Log ${route.name}` : 'Log encounter'"
     class="encounter-dialog"
     data-test="encounter-dialog"
+    :style="dialogStyle"
+    :breakpoints="dialogBreakpoints"
     @update:visible="emit('update:visible', $event)"
   >
     <form class="modal__form" @submit.prevent="emit('submit')">
@@ -66,10 +75,22 @@ const speciesRequired = computed(
       </label>
 
       <label class="field-label" for="enc-level">Level (optional)</label>
-      <InputText id="enc-level" v-model="form.level" type="number" data-test="encounter-level-input" />
+      <InputText
+        id="enc-level"
+        v-model="form.level"
+        type="number"
+        class="w-full"
+        data-test="encounter-level-input"
+      />
 
       <label class="field-label" for="enc-notes">Notes</label>
-      <Textarea id="enc-notes" v-model="form.notes" rows="2" data-test="encounter-notes-input" />
+      <Textarea
+        id="enc-notes"
+        v-model="form.notes"
+        rows="3"
+        class="w-full"
+        data-test="encounter-notes-input"
+      />
 
       <Message
         v-if="dupesWarning"
@@ -104,6 +125,7 @@ const speciesRequired = computed(
 .modal__form {
   display: grid;
   gap: 0.15rem;
+  width: 100%;
 }
 
 .field-label {

@@ -1,11 +1,13 @@
 <script setup>
 import { RouterLink } from 'vue-router'
+import BrandLogo from '@/components/BrandLogo.vue'
 </script>
 
 <template>
   <main class="home page page--narrow" data-test="home-page">
     <section class="hero">
-      <h1 class="hero__brand">Nuzlocke Tracker</h1>
+      <BrandLogo variant="wordmark" size="hero" />
+      <h1 class="hero__brand visually-hidden">Nuzlocke Tracker</h1>
       <p class="lede">
         Keep your Nuzlocke runs organized — locations, catches with sprites, team, box, and the
         graveyard, for every mainline Pokémon game.

@@ -9,6 +9,7 @@ describe('listPokemon', () => {
     assert.equal(rows[0].id, 1)
     assert.equal(rows[1024].id, 1025)
     assert.equal(rows[5].evolutionFamilyId, 4)
+    assert.equal(rows[5].evolvesFromId, 5)
   })
 
   it('filters by generation and maxGeneration', () => {

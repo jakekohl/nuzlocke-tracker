@@ -3,9 +3,11 @@ import { getRouteParam } from '../requestParams.js'
 import { getRulePresets, getRulesCatalog } from '../runRules.js'
 import {
   createEncounter,
+  evolveEncounter,
   getEncounterById,
   inactiveEncounter,
   listEncountersForRun,
+  undoEvolveEncounter,
   updateEncounter,
 } from '../encounterService.js'
 import {
@@ -79,6 +81,45 @@ export async function handleRuns(req, res, segments) {
     }
 
     return res.status(405).json({ message: 'Method not allowed' })
+  }
+
+  // POST /api/runs/:id/encounters/:encounterId/evolve
+  // POST /api/runs/:id/encounters/:encounterId/evolve/undo
+  if (
+    segments.length >= 5 &&
+    segments[2] === 'encounters' &&
+    segments[4] === 'evolve'
+  ) {
+    const runId = getRouteParam(req, 'id') ?? segments[1]
+    const encounterId = segments[3]
+    const owned = await requireOwnedRun(req, res, runId)
+    if (!owned) return
+
+    if (req.method !== 'POST') {
+      return res.status(405).json({ message: 'Method not allowed' })
+    }
+
+    try {
+      if (segments.length === 5) {
+        const encounter = await evolveEncounter(
+          runId,
+          encounterId,
+          owned.user.id,
+          req.body ?? {},
+        )
+        return res.status(200).json(encounter)
+      }
+      if (segments.length === 6 && segments[5] === 'undo') {
+        const encounter = await undoEvolveEncounter(runId, encounterId, owned.user.id)
+        return res.status(200).json(encounter)
+      }
+      return res.status(404).json({ message: 'Not found' })
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({ message: error.message })
+      }
+      throw error
+    }
   }
 
   // /api/runs/:id/encounters/:encounterId

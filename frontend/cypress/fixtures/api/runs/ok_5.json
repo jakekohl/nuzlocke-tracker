@@ -16,6 +16,7 @@
       "blackoutIsFailure": true,
       "giftPokemonAreEncounters": true,
       "noOutsideTrading": true,
+      "randomEvolutions": false,
       "noItemsInBattle": false,
       "noHeldItems": false,
       "noHealingItems": false,

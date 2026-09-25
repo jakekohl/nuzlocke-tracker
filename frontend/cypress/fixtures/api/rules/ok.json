@@ -71,6 +71,13 @@
           "default": true
       },
       {
+          "key": "randomEvolutions",
+          "label": "Random evolutions",
+          "description": "Evolution targets are not limited to the species’ normal line (e.g. Universal Randomizer “Randomize Evolutions”).",
+          "category": "optional",
+          "default": false
+      },
+      {
           "key": "noItemsInBattle",
           "label": "No items in battle",
           "description": "Bag / status items (and typically X-items) may not be used during battles.",
@@ -156,6 +163,7 @@
         "blackoutIsFailure": true,
         "giftPokemonAreEncounters": true,
         "noOutsideTrading": true,
+        "randomEvolutions": false,
         "noItemsInBattle": false,
         "noHeldItems": false,
         "noHealingItems": false,
@@ -182,6 +190,7 @@
         "blackoutIsFailure": true,
         "giftPokemonAreEncounters": true,
         "noOutsideTrading": true,
+        "randomEvolutions": false,
         "noItemsInBattle": true,
         "noHeldItems": true,
         "noHealingItems": false,

@@ -14,6 +14,8 @@ import LocationChecklist from '@/components/LocationChecklist.vue'
 import PokemonRoster from '@/components/PokemonRoster.vue'
 import RulesEditor from '@/components/RulesEditor.vue'
 import EncounterDialog from '@/components/EncounterDialog.vue'
+import EvolveDialog from '@/components/EvolveDialog.vue'
+import EvolutionHistoryDialog from '@/components/EvolutionHistoryDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -48,6 +50,11 @@ const partyFilters = [
 ]
 const encounterDialogOpen = ref(false)
 const loggingRoute = ref(null)
+const evolveDialogOpen = ref(false)
+const historyDialogOpen = ref(false)
+const evolvingEncounter = ref(null)
+const historyEncounter = ref(null)
+const evolving = ref(false)
 
 function openPartyFilter(status) {
   activeTab.value = 'party'
@@ -391,6 +398,57 @@ async function removeEncounter(encounter) {
   encounters.value = encounters.value.filter((row) => row.id !== encounter.id)
 }
 
+function openEvolveDialog(encounter) {
+  evolvingEncounter.value = encounter
+  evolveDialogOpen.value = true
+}
+
+function openHistoryDialog(encounter) {
+  historyEncounter.value = encounter
+  historyDialogOpen.value = true
+}
+
+function replaceEncounter(updated) {
+  encounters.value = encounters.value.map((row) => (row.id === updated.id ? updated : row))
+  if (evolvingEncounter.value?.id === updated.id) evolvingEncounter.value = updated
+  if (historyEncounter.value?.id === updated.id) historyEncounter.value = updated
+}
+
+async function submitEvolve({ pokemonId, level }) {
+  if (!evolvingEncounter.value) return
+  actionError.value = ''
+  evolving.value = true
+  try {
+    const body = { pokemonId }
+    if (level != null) body.level = level
+    const result = await apiClient.evolveEncounter(runId.value, evolvingEncounter.value.id, body)
+    if (!result.ok) {
+      actionError.value = apiMessage(result, `Could not evolve (${result.status}).`)
+      return
+    }
+    replaceEncounter(result.data)
+    evolveDialogOpen.value = false
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : 'Could not evolve.'
+  } finally {
+    evolving.value = false
+  }
+}
+
+async function undoEvolve() {
+  if (!historyEncounter.value) return
+  actionError.value = ''
+  const result = await apiClient.undoEvolveEncounter(runId.value, historyEncounter.value.id)
+  if (!result.ok) {
+    actionError.value = apiMessage(result, `Could not undo evolution (${result.status}).`)
+    return
+  }
+  replaceEncounter(result.data)
+  if (!(result.data.evolutionHistory?.length > 0)) {
+    historyDialogOpen.value = false
+  }
+}
+
 onMounted(loadRun)
 watch(runId, loadRun)
 </script>
@@ -500,10 +558,14 @@ watch(runId, loadRun)
         <PokemonRoster
           :encounters="encounters"
           :pokemon-by-id="pokemonById"
+          :pokemon-options="pokemonOptions"
           :route-by-id="routeById"
           :status-filter="partyFilter"
+          :random-evolutions="Boolean(run.rules?.randomEvolutions)"
           @status="setEncounterStatus"
           @remove="removeEncounter"
+          @evolve="openEvolveDialog"
+          @history="openHistoryDialog"
         />
       </section>
 
@@ -575,6 +637,23 @@ watch(runId, loadRun)
         :nickname-required="Boolean(run.rules?.nicknameRequired)"
         :dupes-warning="dupesWarning"
         @submit="submitEncounter"
+      />
+
+      <EvolveDialog
+        v-model:visible="evolveDialogOpen"
+        :encounter="evolvingEncounter"
+        :pokemon-options="pokemonOptions"
+        :pokemon-by-id="pokemonById"
+        :random-evolutions="Boolean(run.rules?.randomEvolutions)"
+        :saving="evolving"
+        @submit="submitEvolve"
+      />
+
+      <EvolutionHistoryDialog
+        v-model:visible="historyDialogOpen"
+        :encounter="historyEncounter"
+        :pokemon-by-id="pokemonById"
+        @undo="undoEvolve"
       />
     </template>
   </main>

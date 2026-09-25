@@ -163,4 +163,75 @@ describe('Tracker happy paths', () => {
     cy.typeDataTest('encounter-nickname-input', 'Ivy')
     cy.getDataTest('encounter-dupes-warning').should('be.visible')
   })
+
+  it('evolves a caught Pokémon and shows evolution history', () => {
+    let encounters = []
+
+    cy.intercept('GET', /\/api\/runs\/5\/encounters\/?(\?.*)?$/, (req) => {
+      req.reply({ body: encounters })
+    }).as('listEncounters')
+
+    cy.intercept('POST', /\/api\/runs\/5\/encounters\/?$/, (req) => {
+      const created = {
+        id: 31,
+        runId: 5,
+        routeId: req.body.routeId,
+        pokemonId: req.body.pokemonId ?? 1,
+        nickname: req.body.nickname ?? '',
+        status: req.body.status ?? 0,
+        isShiny: false,
+        level: req.body.level ?? null,
+        notes: '',
+        evolutionHistory: [],
+        caughtAt: 1785021274,
+        created: 1785021274,
+        updated: 1785021274,
+        inactive: null,
+        warnings: [],
+      }
+      encounters = [...encounters, created]
+      req.reply({ statusCode: 201, body: created })
+    }).as('createEncounter')
+
+    cy.intercept('POST', /\/api\/runs\/5\/encounters\/31\/evolve\/?$/, (req) => {
+      const evolved = {
+        ...encounters.find((row) => row.id === 31),
+        pokemonId: req.body.pokemonId,
+        level: req.body.level ?? null,
+        evolutionHistory: [
+          {
+            fromPokemonId: 1,
+            toPokemonId: req.body.pokemonId,
+            evolvedAt: 1785021400,
+            level: req.body.level ?? null,
+          },
+        ],
+        updated: 1785021400,
+      }
+      encounters = encounters.map((row) => (row.id === 31 ? evolved : row))
+      req.reply({ body: evolved })
+    }).as('evolveEncounter')
+
+    cy.signInForTracker()
+    cy.openRunDetailFromList()
+    cy.clickDataTest('location-log-1')
+    cy.primeSelectOption('encounter-pokemon-select', 'Bulbasaur')
+    cy.typeDataTest('encounter-nickname-input', 'Sprout')
+    cy.clickDataTest('encounter-submit')
+    cy.wait('@createEncounter')
+    cy.waitForEncounterDialogClosed()
+
+    cy.openPartyFilter('run-tab-team')
+    cy.getDataTest('roster-list').should('contain.text', 'Bulbasaur')
+    cy.clickDataTest('encounter-evolve-31')
+    cy.getDataTest('evolve-dialog').should('be.visible')
+    cy.primeSelectOption('encounter-pokemon-select', 'Ivysaur')
+    cy.clickDataTest('evolve-submit')
+    cy.wait('@evolveEncounter')
+    cy.getDataTest('roster-list').should('contain.text', 'Ivysaur')
+    cy.clickDataTest('encounter-history-31')
+    cy.getDataTest('evolution-history-dialog').should('be.visible')
+    cy.getDataTest('evolution-timeline').should('contain.text', 'Bulbasaur')
+    cy.getDataTest('evolution-timeline').should('contain.text', 'Ivysaur')
+  })
 })

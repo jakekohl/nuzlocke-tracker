@@ -18,6 +18,7 @@ describe('defaultRunRules', () => {
     assert.equal(rules.shinyClause, true)
     assert.equal(rules.setMode, false)
     assert.equal(rules.levelCap, false)
+    assert.equal(rules.randomEvolutions, false)
   })
 })
 

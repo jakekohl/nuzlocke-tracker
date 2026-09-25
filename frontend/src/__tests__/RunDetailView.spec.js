@@ -18,6 +18,8 @@ vi.mock('@/services/ApiClient', () => ({
     deleteRun: vi.fn(),
     createEncounter: vi.fn(),
     updateEncounter: vi.fn(),
+    evolveEncounter: vi.fn(),
+    undoEvolveEncounter: vi.fn(),
     deleteEncounter: vi.fn(),
   },
 }))
@@ -95,7 +97,24 @@ function mockHappyPathApis() {
   vi.mocked(apiClient.listPokemon).mockResolvedValue({
     ok: true,
     status: 200,
-    data: [{ id: 16, name: 'Pidgey', generation: 1, types: ['normal', 'flying'], evolutionFamilyId: 16 }],
+    data: [
+      {
+        id: 16,
+        name: 'Pidgey',
+        generation: 1,
+        types: ['normal', 'flying'],
+        evolutionFamilyId: 16,
+        evolvesFromId: null,
+      },
+      {
+        id: 17,
+        name: 'Pidgeotto',
+        generation: 1,
+        types: ['normal', 'flying'],
+        evolutionFamilyId: 16,
+        evolvesFromId: 16,
+      },
+    ],
   })
   vi.mocked(apiClient.listRoutes).mockResolvedValue({
     ok: true,

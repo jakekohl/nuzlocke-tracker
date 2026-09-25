@@ -28,8 +28,13 @@ describe('Runs pages', () => {
     cy.getDataTest('encounter-row-1').find('[data-test=encounter-notes]').should('contain.text', 'Starter pick')
     cy.getDataTest('encounter-status-1').should('contain.text', 'Alive')
 
-    cy.clickDataTest('run-tab-details')
+    cy.clickDataTest('run-tab-notes')
     cy.getDataTest('run-edit-notes').should('have.value', '')
+
+    cy.clickDataTest('run-button-edit-meta')
+    cy.getDataTest('run-edit-name').should('have.value', 'Test Run')
+    cy.clickDataTest('run-button-edit-meta')
+    cy.getDataTest('run-detail-name').should('have.text', 'Test Run')
 
     cy.clickDataTest('run-tab-rules')
     cy.getDataTest('run-rule-permadeath').should('be.checked')

@@ -169,7 +169,7 @@ describe('RunDetailView', () => {
     expect(apiClient.getRun).not.toHaveBeenCalled()
   })
 
-  it('renders location checklist, rules, and details', async () => {
+  it('renders location checklist, rules, and notes', async () => {
     const store = useApiKeyStore()
     await store.setApiKey('nuz_test')
     mockHappyPathApis()
@@ -178,16 +178,76 @@ describe('RunDetailView', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-test="run-detail-name"]').text()).toBe('Blue Softcore')
+    expect(wrapper.find('[data-test="run-detail-status"]').text()).toMatch(/active/i)
     expect(wrapper.find('[data-test="run-locations"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="location-row-2"]').text()).toContain('Route 1')
 
-    await openTab(wrapper, 'run-tab-details')
+    await wrapper.find('[data-test="run-button-edit-meta"]').trigger('click')
+    await flushPromises()
     const nameInput = wrapper.find('[data-test="run-edit-name"]')
     expect(nameInput.element.value ?? nameInput.find('input').element.value).toBe('Blue Softcore')
+
+    await openTab(wrapper, 'run-tab-notes')
+    const notesInput = wrapper.find('[data-test="run-edit-notes"]')
+    expect(notesInput.element.value ?? notesInput.find('textarea').element.value).toBe('Dupes on')
 
     await openTab(wrapper, 'run-tab-rules')
     expect(wrapper.find('[data-test="run-rule-setMode"]').element.checked).toBe(false)
     expect(wrapper.find('[data-test="run-rule-permadeath"]').element.checked).toBe(true)
+  })
+
+  it('saves run meta from the banner edit mode', async () => {
+    const store = useApiKeyStore()
+    await store.setApiKey('nuz_test')
+    mockHappyPathApis()
+    vi.mocked(apiClient.updateRun).mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { ...sampleRun, name: 'Blue Hardcore', status: 2 },
+    })
+
+    const wrapper = mountPage(pinia, router)
+    await flushPromises()
+
+    await wrapper.find('[data-test="run-button-edit-meta"]').trigger('click')
+    await flushPromises()
+
+    const nameInput = wrapper.find('[data-test="run-edit-name"]')
+    await nameInput.setValue('Blue Hardcore')
+    await wrapper.find('[data-test="run-button-save-meta"]').trigger('click')
+    await flushPromises()
+
+    expect(apiClient.updateRun).toHaveBeenCalledWith(
+      '3',
+      expect.objectContaining({
+        name: 'Blue Hardcore',
+        status: 1,
+        startDate: expect.any(String),
+      }),
+    )
+    expect(wrapper.find('[data-test="run-detail-name"]').text()).toBe('Blue Hardcore')
+    expect(wrapper.find('[data-test="run-button-edit-meta"]').exists()).toBe(true)
+  })
+
+  it('saves notes from the Notes tab', async () => {
+    const store = useApiKeyStore()
+    await store.setApiKey('nuz_test')
+    mockHappyPathApis()
+    vi.mocked(apiClient.updateRun).mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { ...sampleRun, notes: 'Updated notes' },
+    })
+
+    const wrapper = mountPage(pinia, router)
+    await flushPromises()
+    await openTab(wrapper, 'run-tab-notes')
+
+    await wrapper.find('[data-test="run-edit-notes"]').setValue('Updated notes')
+    await wrapper.find('[data-test="run-button-save-notes"]').trigger('click')
+    await flushPromises()
+
+    expect(apiClient.updateRun).toHaveBeenCalledWith('3', { notes: 'Updated notes' })
   })
 
   it('saves rule changes via updateRun', async () => {

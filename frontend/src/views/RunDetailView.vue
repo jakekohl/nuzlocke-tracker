@@ -31,17 +31,19 @@ const routeOptions = ref([])
 const loading = ref(false)
 const error = ref('')
 const actionError = ref('')
-const savingDetails = ref(false)
+const savingMeta = ref(false)
+const savingNotes = ref(false)
 const savingRules = ref(false)
 const deleting = ref(false)
 const addingEncounter = ref(false)
+const editingMeta = ref(false)
 const activeTab = ref('locations')
 const partyFilter = ref(encounterStatuses.alive)
 const tabs = [
   { id: 'locations', label: 'Locations', test: 'run-tab-locations' },
   { id: 'party', label: 'Party', test: 'run-tab-party' },
   { id: 'rules', label: 'Rules', test: 'run-tab-rules' },
-  { id: 'details', label: 'Details', test: 'run-tab-details' },
+  { id: 'notes', label: 'Notes', test: 'run-tab-notes' },
 ]
 const partyFilters = [
   { id: 'team', label: 'Alive', status: encounterStatuses.alive, test: 'run-tab-team' },
@@ -71,7 +73,8 @@ function onStatSelect(key) {
   else if (key === 'graveyard') openPartyFilter(encounterStatuses.dead)
 }
 
-const editDetails = ref({ name: '', status: runStatuses.notStarted, notes: '', startDate: '' })
+const editMeta = ref({ name: '', status: runStatuses.notStarted, startDate: '' })
+const editNotes = ref('')
 const editRules = ref({})
 const encounterForm = ref(blankEncounterForm())
 
@@ -147,13 +150,26 @@ function unixToDateInput(value) {
 }
 
 function syncEditorsFromRun(next) {
-  editDetails.value = {
+  editMeta.value = {
     name: next.name ?? '',
     status: Number(next.status),
-    notes: next.notes ?? '',
     startDate: unixToDateInput(next.startDate),
   }
+  editNotes.value = next.notes ?? ''
   editRules.value = { ...next.rules }
+}
+
+function beginEditMeta() {
+  if (!run.value) return
+  syncEditorsFromRun(run.value)
+  editingMeta.value = true
+  actionError.value = ''
+}
+
+function cancelEditMeta() {
+  if (run.value) syncEditorsFromRun(run.value)
+  editingMeta.value = false
+  actionError.value = ''
 }
 
 function routeLabel(id) {
@@ -179,6 +195,7 @@ async function loadRun() {
   actionError.value = ''
   run.value = null
   encounters.value = []
+  editingMeta.value = false
 
   if (!hasKey.value) {
     error.value = 'Set an access key in Settings before viewing a run.'
@@ -232,21 +249,20 @@ async function loadRun() {
   }
 }
 
-async function saveDetails() {
+async function saveMeta() {
   actionError.value = ''
-  const name = editDetails.value.name.trim()
+  const name = editMeta.value.name.trim()
   if (!name) {
     actionError.value = 'Name is required.'
     return
   }
 
-  savingDetails.value = true
+  savingMeta.value = true
   try {
     const result = await apiClient.updateRun(runId.value, {
       name,
-      status: Number(editDetails.value.status),
-      notes: editDetails.value.notes,
-      startDate: editDetails.value.startDate,
+      status: Number(editMeta.value.status),
+      startDate: editMeta.value.startDate,
     })
     if (!result.ok) {
       actionError.value = apiMessage(result, `Could not save run (${result.status}).`)
@@ -254,10 +270,31 @@ async function saveDetails() {
     }
     run.value = result.data
     syncEditorsFromRun(result.data)
+    editingMeta.value = false
   } catch (err) {
     actionError.value = err instanceof Error ? err.message : 'Could not save run.'
   } finally {
-    savingDetails.value = false
+    savingMeta.value = false
+  }
+}
+
+async function saveNotes() {
+  actionError.value = ''
+  savingNotes.value = true
+  try {
+    const result = await apiClient.updateRun(runId.value, {
+      notes: editNotes.value,
+    })
+    if (!result.ok) {
+      actionError.value = apiMessage(result, `Could not save notes (${result.status}).`)
+      return
+    }
+    run.value = result.data
+    syncEditorsFromRun(result.data)
+  } catch (err) {
+    actionError.value = err instanceof Error ? err.message : 'Could not save notes.'
+  } finally {
+    savingNotes.value = false
   }
 }
 
@@ -476,25 +513,103 @@ watch(runId, loadRun)
       <header class="hero surface" data-test="run-detail-header">
         <div class="hero__text">
           <p class="eyebrow">{{ formatGame(run.gameId) }}</p>
-          <h1 data-test="run-detail-name">{{ run.name }}</h1>
-          <div class="hero__meta">
-            <Tag
-              :value="formatRunStatus(run.status)"
-              :severity="runStatusSeverity(run.status)"
-              rounded
-              data-test="run-detail-status"
-            />
-            <span class="muted">Started {{ formatUnixDate(run.startDate) }}</span>
-          </div>
+
+          <template v-if="editingMeta">
+            <div class="hero__edit" data-test="run-detail-meta-edit">
+              <div class="field-block">
+                <label class="field-label" for="edit-name">Name</label>
+                <InputText
+                  id="edit-name"
+                  v-model="editMeta.name"
+                  class="w-full"
+                  data-test="run-edit-name"
+                />
+              </div>
+              <div class="hero__edit-row">
+                <div class="field-block">
+                  <label class="field-label" for="edit-status">Status</label>
+                  <Select
+                    input-id="edit-status"
+                    v-model="editMeta.status"
+                    :options="runStatusOptions"
+                    option-label="label"
+                    option-value="value"
+                    class="w-full"
+                    data-test="run-edit-status"
+                  />
+                </div>
+                <div class="field-block">
+                  <label class="field-label" for="edit-start">Start date</label>
+                  <input
+                    id="edit-start"
+                    v-model="editMeta.startDate"
+                    type="date"
+                    class="native-input"
+                    data-test="run-edit-start"
+                  />
+                </div>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <h1 data-test="run-detail-name">{{ run.name }}</h1>
+            <div class="hero__meta">
+              <Tag
+                :value="formatRunStatus(run.status)"
+                :severity="runStatusSeverity(run.status)"
+                rounded
+                data-test="run-detail-status"
+              />
+              <span class="muted" data-test="run-detail-start">
+                Started {{ formatUnixDate(run.startDate) }}
+              </span>
+            </div>
+          </template>
         </div>
-        <Button
-          label="Archive run"
-          severity="danger"
-          outlined
-          data-test="run-button-archive"
-          :loading="deleting"
-          @click="archiveRun"
-        />
+
+        <div class="hero__actions">
+          <Button
+            v-if="editingMeta"
+            label="Save"
+            data-test="run-button-save-meta"
+            :loading="savingMeta"
+            @click="saveMeta"
+          />
+          <Button
+            :severity="editingMeta ? 'contrast' : 'secondary'"
+            outlined
+            :aria-label="editingMeta ? 'Cancel editing run details' : 'Edit run details'"
+            :aria-pressed="editingMeta"
+            data-test="run-button-edit-meta"
+            :disabled="savingMeta"
+            @click="editingMeta ? cancelEditMeta() : beginEditMeta()"
+          >
+            <template #icon="{ class: iconClass }">
+              <svg
+                :class="[iconClass, 'pencil-icon']"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  fill="currentColor"
+                  d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
+                />
+              </svg>
+            </template>
+          </Button>
+          <Button
+            label="Archive run"
+            severity="danger"
+            outlined
+            data-test="run-button-archive"
+            :loading="deleting"
+            :disabled="editingMeta"
+            @click="archiveRun"
+          />
+        </div>
       </header>
 
       <p
@@ -578,53 +693,25 @@ watch(runId, loadRun)
         @preset="applyPreset"
       />
 
-      <section v-else-if="activeTab === 'details'" class="panel surface" aria-labelledby="details-heading">
+      <section v-else-if="activeTab === 'notes'" class="panel surface" aria-labelledby="notes-heading">
         <div class="section__head">
-          <h2 id="details-heading">Details</h2>
+          <h2 id="notes-heading">Notes</h2>
           <Button
             label="Save"
-            data-test="run-button-save-details"
-            :loading="savingDetails"
-            @click="saveDetails"
+            data-test="run-button-save-notes"
+            :loading="savingNotes"
+            @click="saveNotes"
           />
         </div>
-        <div class="details-grid">
-          <div class="field-block">
-            <label class="field-label" for="edit-name">Name</label>
-            <InputText id="edit-name" v-model="editDetails.name" class="w-full" data-test="run-edit-name" />
-          </div>
-          <div class="field-block">
-            <label class="field-label" for="edit-status">Status</label>
-            <Select
-              input-id="edit-status"
-              v-model="editDetails.status"
-              :options="runStatusOptions"
-              option-label="label"
-              option-value="value"
-              class="w-full"
-              data-test="run-edit-status"
-            />
-          </div>
-          <div class="field-block">
-            <label class="field-label" for="edit-start">Start date</label>
-            <input
-              id="edit-start"
-              v-model="editDetails.startDate"
-              type="date"
-              class="native-input"
-              data-test="run-edit-start"
-            />
-          </div>
-          <div class="field-block field-block--full">
-            <label class="field-label" for="edit-notes">Notes</label>
-            <Textarea
-              id="edit-notes"
-              v-model="editDetails.notes"
-              class="w-full"
-              rows="4"
-              data-test="run-edit-notes"
-            />
-          </div>
+        <div class="field-block">
+          <label class="field-label" for="edit-notes">Run notes</label>
+          <Textarea
+            id="edit-notes"
+            v-model="editNotes"
+            class="w-full"
+            rows="6"
+            data-test="run-edit-notes"
+          />
         </div>
       </section>
 
@@ -706,12 +793,39 @@ watch(runId, loadRun)
   line-height: 1.15;
 }
 
+.hero__text {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
 .hero__meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
   align-items: center;
   font-size: 0.9rem;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.hero__edit {
+  display: grid;
+  gap: 0.65rem;
+  max-width: 36rem;
+}
+
+.hero__edit-row {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.pencil-icon {
+  display: block;
 }
 
 .muted {
@@ -801,11 +915,6 @@ watch(runId, loadRun)
   font-size: 1.2rem;
 }
 
-.details-grid {
-  display: grid;
-  gap: 0.65rem 0.85rem;
-}
-
 .w-full {
   width: 100%;
 }
@@ -830,12 +939,8 @@ watch(runId, loadRun)
 }
 
 @media (min-width: 28rem) {
-  .details-grid {
+  .hero__edit-row {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .field-block--full {
-    grid-column: 1 / -1;
   }
 }
 </style>

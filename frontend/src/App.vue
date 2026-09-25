@@ -1,15 +1,13 @@
 <script setup>
 import { computed } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { RouterLink, RouterView } from 'vue-router'
 import BrandLogo from '@/components/BrandLogo.vue'
 import SiteFooter from '@/components/SiteFooter.vue'
 import { useApiKeyStore } from '@/stores/apiKey'
 
-const route = useRoute()
 const apiKeyStore = useApiKeyStore()
 
 const keyConfigured = computed(() => apiKeyStore.isConfigured)
-const pageKey = computed(() => route.fullPath)
 </script>
 
 <template>
@@ -41,7 +39,7 @@ const pageKey = computed(() => route.fullPath)
       </div>
     </header>
 
-    <RouterView :key="pageKey" class="page-enter" />
+    <RouterView class="page-enter" />
     <SiteFooter />
   </div>
 </template>

@@ -1,4 +1,5 @@
 import { requireUser } from '../auth.js'
+import { setCatalogCacheHeaders } from '../cacheHeaders.js'
 import { getRouteParam } from '../requestParams.js'
 import { getPokemonById, listPokemon } from '../pokemonService.js'
 
@@ -11,6 +12,7 @@ export async function handlePokemon(req, res, segments) {
     const generation = req.query?.generation
     const maxGeneration = req.query?.maxGeneration
     const pokemon = await listPokemon({ generation, maxGeneration })
+    setCatalogCacheHeaders(res)
     return res.status(200).json(pokemon)
   }
 
@@ -24,6 +26,7 @@ export async function handlePokemon(req, res, segments) {
     if (!pokemon) {
       return res.status(404).json({ message: 'Pokémon not found' })
     }
+    setCatalogCacheHeaders(res)
     return res.status(200).json(pokemon)
   }
 

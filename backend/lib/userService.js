@@ -3,6 +3,15 @@ import { getNextId } from './apiHandler.js'
 import { apiKeyPrefix, generateApiKey, hashApiKey } from './apiKeyCrypto.js'
 import { unixNow } from './timestamps.js'
 
+/** Skip writes when lastLogin was updated within this window (seconds). */
+export const LAST_LOGIN_TOUCH_TTL_SECONDS = 30 * 60
+
+export function shouldTouchLastLogin(now, lastLogin, ttlSeconds = LAST_LOGIN_TOUCH_TTL_SECONDS) {
+  const previous = Number(lastLogin)
+  if (!Number.isFinite(previous)) return true
+  return now - previous >= ttlSeconds
+}
+
 export function toUserResponse(doc) {
   if (!doc) return null
   return {
@@ -33,9 +42,18 @@ export async function findUserByApiKey(rawKey) {
   return toUserResponse(user)
 }
 
-export async function touchLastLogin(id) {
+/**
+ * Persist lastLogin only if missing or older than {@link LAST_LOGIN_TOUCH_TTL_SECONDS}.
+ * Avoids a Mongo write on every authenticated request.
+ * @returns {Promise<boolean>} true when a write was performed
+ */
+export async function touchLastLogin(id, lastLogin) {
   const now = unixNow()
+  if (!shouldTouchLastLogin(now, lastLogin)) {
+    return false
+  }
   await User.updateOne({ id: Number(id) }, { lastLogin: now, updated: now })
+  return true
 }
 
 export async function createUser({ name, email }) {

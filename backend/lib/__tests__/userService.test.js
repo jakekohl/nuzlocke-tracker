@@ -1,6 +1,11 @@
-import { describe, it, mock, beforeEach } from 'node:test'
+import { describe, it, beforeEach, mock } from 'node:test'
 import assert from 'node:assert/strict'
 import { hashApiKey, apiKeyPrefix } from '../apiKeyCrypto.js'
+import {
+  LAST_LOGIN_TOUCH_TTL_SECONDS,
+  shouldTouchLastLogin,
+  toUserResponse,
+} from '../userService.js'
 
 describe('userService key hashing contract', () => {
   it('stores hash and prefix derived from the plaintext key', () => {
@@ -21,8 +26,7 @@ describe('createUser response shape (mocked)', () => {
     mock.reset()
   })
 
-  it('never puts plaintext key into toUserResponse fields', async () => {
-    const { toUserResponse } = await import('../userService.js')
+  it('never puts plaintext key into toUserResponse fields', () => {
     const doc = {
       id: 1,
       name: 'Jake',
@@ -42,5 +46,28 @@ describe('createUser response shape (mocked)', () => {
     assert.equal('apiKeyHash' in response, false)
     assert.equal('apiKey' in response, false)
     assert.equal('password' in response, false)
+  })
+})
+
+describe('shouldTouchLastLogin', () => {
+  it('uses a 30-minute TTL', () => {
+    assert.equal(LAST_LOGIN_TOUCH_TTL_SECONDS, 30 * 60)
+  })
+
+  it('returns true when lastLogin is missing', () => {
+    assert.equal(shouldTouchLastLogin(1_000_000, undefined), true)
+    assert.equal(shouldTouchLastLogin(1_000_000, null), true)
+  })
+
+  it('returns false when lastLogin is within the TTL window', () => {
+    const now = 1_000_000
+    assert.equal(shouldTouchLastLogin(now, now - LAST_LOGIN_TOUCH_TTL_SECONDS + 1), false)
+    assert.equal(shouldTouchLastLogin(now, now), false)
+  })
+
+  it('returns true when lastLogin is older than the TTL', () => {
+    const now = 2_000_000
+    assert.equal(shouldTouchLastLogin(now, now - LAST_LOGIN_TOUCH_TTL_SECONDS), true)
+    assert.equal(shouldTouchLastLogin(now, now - LAST_LOGIN_TOUCH_TTL_SECONDS - 1), true)
   })
 })

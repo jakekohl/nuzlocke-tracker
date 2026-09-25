@@ -24,6 +24,37 @@ Keep the API as **a single Vercel serverless function** (`backend/api/index.js`)
 - Do **not** add additional `backend/api/*.js` entry files unless there is a hard platform reason.
 - Public paths stay REST-shaped (`/api/runs`, `/api/auth/me`, etc.); `lib/router.js` dispatches by method + path.
 
+## Vercel cost constraints
+
+Prefer changes that reduce **Edge Requests**, **Fast Data Transfer**, **function invocations**, and **GB-seconds**. Do not add cost drivers without a clear product need.
+
+### Guardrails (account)
+
+- This project is expected to stay on **Hobby**. Hobby has **no Spend Management / usage alerts** and does not bill for overages — traffic is **soft-capped** (requests may be paused or degraded until the next cycle) instead of generating surprise invoices.
+- Still watch usage in the dashboard (**Usage** for `nuzlocke-tracker` and `nuzlocke-api`) after deploys or traffic spikes so you notice soft-cap risk early.
+- If you ever upgrade to **Pro**, enable Spend Management / monthly spend alerts immediately — Pro can bill for overages.
+
+### Backend
+
+- Stay at **one** serverless function; do not add Edge Middleware, Image Optimization, or `@vercel/analytics` / Speed Insights unless explicitly requested.
+- Keep function `memory` at the lowest proven setting in `backend/vercel.json` (target **≤512 MB**). Do not bump to 1024 without measuring a real OOM/latency need.
+- Throttle `touchLastLogin` (see `LAST_LOGIN_TOUCH_TTL_SECONDS`); never write lastLogin on every authenticated request.
+- Static catalogs (`/api/pokemon`, `/api/routes`, `/api/games`, `/api/runs/rules`) should keep `Cache-Control: private, max-age=…` via `setCatalogCacheHeaders`.
+- Avoid N+1 API fan-out from new UI: prefer session caching and deferred loads over “fetch everything on mount.”
+
+### Frontend
+
+- Keep immutable caching for hashed assets in `frontend/vercel.json` (`/assets/*` → long `max-age` + `immutable`; `index.html` → short / revalidate).
+- Use `useCatalogStore` for games / rules / pokemon / routes so navigations reuse session data.
+- Do **not** remount all routes via `RouterView :key="fullPath"` (or similar) without a strong reason — it forces remount refetches.
+- Defer heavy catalogs (especially pokemon) until the UI needs them (party tab, encounter/evolve dialogs).
+- Keep large media (sprites, fonts) off Vercel when an external CDN already works; do not mirror PokeAPI sprites into `public/`.
+- Prefer Cypress support commands in `frontend/cypress/support` for flows that wait on deferred catalog fetches (e.g. `openEncounterLog`).
+
+### When adding features
+
+Call out expected impact on invocations / transfer in the PR or commit notes when the change adds polling, prefetch, analytics, middleware, or large static assets.
+
 ## Auth model
 
 - Per-user access tokens: client sends `x-api-key`; server stores only a SHA-256 hash (`apiKeyHash`).

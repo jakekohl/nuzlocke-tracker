@@ -5,6 +5,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import RunDetailView from '../views/RunDetailView.vue'
 import { useApiKeyStore } from '../stores/apiKey'
+import { useCatalogStore } from '../stores/catalog'
 import { PrimeVueTestPlugin } from './primeVueTestPlugin'
 
 vi.mock('@/services/ApiClient', () => ({
@@ -151,6 +152,7 @@ describe('RunDetailView', () => {
   beforeEach(async () => {
     pinia = createPinia()
     setActivePinia(pinia)
+    useCatalogStore().clear()
     router = makeRouter()
     await router.push('/runs/3')
     await router.isReady()
@@ -181,6 +183,8 @@ describe('RunDetailView', () => {
     expect(wrapper.find('[data-test="run-detail-status"]').text()).toMatch(/active/i)
     expect(wrapper.find('[data-test="run-locations"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="location-row-2"]').text()).toContain('Route 1')
+    expect(apiClient.listRoutes).toHaveBeenCalled()
+    expect(apiClient.listPokemon).not.toHaveBeenCalled()
 
     await wrapper.find('[data-test="run-button-edit-meta"]').trigger('click')
     await flushPromises()
@@ -194,6 +198,20 @@ describe('RunDetailView', () => {
     await openTab(wrapper, 'run-tab-rules')
     expect(wrapper.find('[data-test="run-rule-setMode"]').element.checked).toBe(false)
     expect(wrapper.find('[data-test="run-rule-permadeath"]').element.checked).toBe(true)
+  })
+
+  it('loads pokemon catalog when opening the party tab', async () => {
+    const store = useApiKeyStore()
+    await store.setApiKey('nuz_test')
+    mockHappyPathApis()
+
+    const wrapper = mountPage(pinia, router)
+    await flushPromises()
+    expect(apiClient.listPokemon).not.toHaveBeenCalled()
+
+    await openTab(wrapper, 'run-tab-party')
+    await flushPromises()
+    expect(apiClient.listPokemon).toHaveBeenCalledWith({ maxGeneration: 1 })
   })
 
   it('saves run meta from the banner edit mode', async () => {

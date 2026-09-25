@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useApiKeyStore } from '@/stores/apiKey'
+import { useCatalogStore } from '@/stores/catalog'
 import { apiClient } from '@/services/ApiClient'
 import { fallbackGames, formatGame, gameIds } from '@/constants/games'
 import { formatRunStatus, runStatuses } from '@/constants/runStatuses'
@@ -10,6 +11,7 @@ import { gamesGroupedByGeneration } from '@/lib/gamesUi'
 import { runStatusSeverity } from '@/lib/statusUi'
 
 const apiKeyStore = useApiKeyStore()
+const catalogStore = useCatalogStore()
 const router = useRouter()
 
 const runs = ref([])
@@ -48,8 +50,8 @@ function apiMessage(result, fallback) {
 
 async function loadGamesAndRules() {
   const [gamesResult, rulesResult] = await Promise.all([
-    apiClient.listGames(),
-    apiClient.getRunRulesCatalog(),
+    catalogStore.ensureGames(),
+    catalogStore.ensureRulesCatalog(),
   ])
   if (gamesResult.ok && Array.isArray(gamesResult.data) && gamesResult.data.length) {
     games.value = gamesResult.data

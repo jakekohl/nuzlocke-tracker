@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useApiKeyStore } from '@/stores/apiKey'
+import { useCatalogStore } from '@/stores/catalog'
 import { apiClient } from '@/services/ApiClient'
 import { formatGame, generationForGame } from '@/constants/games'
 import { formatRunStatus, runStatusOptions, runStatuses } from '@/constants/runStatuses'
@@ -20,6 +21,7 @@ import EvolutionHistoryDialog from '@/components/EvolutionHistoryDialog.vue'
 const route = useRoute()
 const router = useRouter()
 const apiKeyStore = useApiKeyStore()
+const catalogStore = useCatalogStore()
 
 const run = ref(null)
 const ruleCatalog = ref([])
@@ -61,6 +63,7 @@ const evolving = ref(false)
 function openPartyFilter(status) {
   activeTab.value = 'party'
   partyFilter.value = status
+  void loadPokemonCatalog()
 }
 
 function onStatSelect(key) {
@@ -176,18 +179,35 @@ function routeLabel(id) {
   return routeById.value.get(Number(id))?.name ?? `Route ${id}`
 }
 
-async function loadCatalogs(gameId) {
-  const generation = generationForGame(gameId)
-  const [pokemonResult, routesResult] = await Promise.all([
-    apiClient.listPokemon({ maxGeneration: generation }),
-    apiClient.listRoutes({ gameId }),
-  ])
-  if (pokemonResult.ok && Array.isArray(pokemonResult.data)) {
-    pokemonOptions.value = pokemonResult.data
-  }
+async function ensureRoutesForRun(gameId) {
+  const routesResult = await catalogStore.ensureRoutes({ gameId })
   if (routesResult.ok && Array.isArray(routesResult.data)) {
     routeOptions.value = routesResult.data
   }
+}
+
+async function ensurePokemonForRun(gameId) {
+  const generation = generationForGame(gameId)
+  const pokemonResult = await catalogStore.ensurePokemon({ maxGeneration: generation })
+  if (pokemonResult.ok && Array.isArray(pokemonResult.data)) {
+    pokemonOptions.value = pokemonResult.data
+  }
+}
+
+/** Routes power the locations checklist/stats; load once the run is known. */
+async function loadRoutesCatalog() {
+  if (!run.value?.gameId) return
+  await ensureRoutesForRun(run.value.gameId)
+}
+
+/**
+ * Pokémon catalog is deferred until party UI or encounter/evolve dialogs
+ * so light browsing of rules/notes/locations skips the larger payload.
+ */
+async function loadPokemonCatalog() {
+  if (!run.value?.gameId) return
+  if (pokemonOptions.value.length) return
+  await ensurePokemonForRun(run.value.gameId)
 }
 
 async function loadRun() {
@@ -195,6 +215,8 @@ async function loadRun() {
   actionError.value = ''
   run.value = null
   encounters.value = []
+  pokemonOptions.value = []
+  routeOptions.value = []
   editingMeta.value = false
 
   if (!hasKey.value) {
@@ -206,7 +228,7 @@ async function loadRun() {
   try {
     const [runResult, rulesResult, encountersResult] = await Promise.all([
       apiClient.getRun(runId.value),
-      apiClient.getRunRulesCatalog(),
+      catalogStore.ensureRulesCatalog(),
       apiClient.listEncounters(runId.value),
     ])
 
@@ -238,7 +260,8 @@ async function loadRun() {
       )
     }
 
-    await loadCatalogs(runResult.data.gameId)
+    // Locations tab (default) needs routes; pokemon stays deferred.
+    await loadRoutesCatalog()
   } catch (err) {
     const detail = err instanceof Error ? err.message : ''
     error.value = detail
@@ -361,6 +384,7 @@ function openEncounterDialog(area) {
   loggingRoute.value = area
   encounterForm.value = blankEncounterForm()
   encounterDialogOpen.value = true
+  void loadPokemonCatalog()
 }
 
 async function submitEncounter() {
@@ -438,11 +462,13 @@ async function removeEncounter(encounter) {
 function openEvolveDialog(encounter) {
   evolvingEncounter.value = encounter
   evolveDialogOpen.value = true
+  void loadPokemonCatalog()
 }
 
 function openHistoryDialog(encounter) {
   historyEncounter.value = encounter
   historyDialogOpen.value = true
+  void loadPokemonCatalog()
 }
 
 function replaceEncounter(updated) {
@@ -488,6 +514,9 @@ async function undoEvolve() {
 
 onMounted(loadRun)
 watch(runId, loadRun)
+watch(activeTab, (tab) => {
+  if (tab === 'party') void loadPokemonCatalog()
+})
 </script>
 
 <template>

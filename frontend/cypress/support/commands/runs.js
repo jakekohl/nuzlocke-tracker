@@ -24,7 +24,6 @@ Cypress.Commands.add('openRunDetailFromList', () => {
   cy.wait('@getRun')
   cy.wait('@getRules')
   cy.wait('@listEncounters')
-  cy.wait('@listPokemon')
   cy.wait('@listRoutes')
   cy.getDataTest('run-detail-page').should('be.visible')
 })
@@ -33,6 +32,12 @@ Cypress.Commands.add('primeSelectOption', (dataTest, label) => {
   cy.ensureDataTestVisible(dataTest).click()
   cy.get('.p-select-overlay').should('be.visible')
   cy.contains('.p-select-option', label).scrollIntoView().should('be.visible').click()
+})
+
+Cypress.Commands.add('openEncounterLog', (locationTestId) => {
+  cy.clickDataTest(locationTestId)
+  cy.wait('@listPokemon')
+  cy.getDataTest('encounter-dialog').should('be.visible')
 })
 
 Cypress.Commands.add('waitForEncounterDialogClosed', () => {

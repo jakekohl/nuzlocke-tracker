@@ -33,7 +33,7 @@ describe('Runs pages', () => {
 
     cy.clickDataTest('run-button-edit-meta')
     cy.getDataTest('run-edit-name').should('have.value', 'Test Run')
-    cy.clickDataTest('run-button-edit-meta')
+    cy.clickDataTest('run-button-cancel-meta')
     cy.getDataTest('run-detail-name').should('have.text', 'Test Run')
 
     cy.clickDataTest('run-tab-rules')

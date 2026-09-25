@@ -576,17 +576,40 @@ watch(runId, loadRun)
             @click="saveMeta"
           />
           <Button
-            :severity="editingMeta ? 'contrast' : 'secondary'"
-            outlined
-            :aria-label="editingMeta ? 'Cancel editing run details' : 'Edit run details'"
-            :aria-pressed="editingMeta"
-            data-test="run-button-edit-meta"
+            v-if="editingMeta"
+            severity="danger"
+            aria-label="Cancel editing run details"
+            data-test="run-button-cancel-meta"
             :disabled="savingMeta"
-            @click="editingMeta ? cancelEditMeta() : beginEditMeta()"
+            @click="cancelEditMeta"
           >
             <template #icon="{ class: iconClass }">
               <svg
-                :class="[iconClass, 'pencil-icon']"
+                :class="[iconClass, 'meta-action-icon']"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  fill="currentColor"
+                  d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"
+                />
+              </svg>
+            </template>
+          </Button>
+          <Button
+            v-else
+            severity="secondary"
+            outlined
+            aria-label="Edit run details"
+            data-test="run-button-edit-meta"
+            @click="beginEditMeta"
+          >
+            <template #icon="{ class: iconClass }">
+              <svg
+                :class="[iconClass, 'meta-action-icon']"
                 viewBox="0 0 24 24"
                 width="16"
                 height="16"
@@ -824,7 +847,7 @@ watch(runId, loadRun)
   gap: 0.65rem;
 }
 
-.pencil-icon {
+.meta-action-icon {
   display: block;
 }
 

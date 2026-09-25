@@ -10,6 +10,7 @@ export function toPokemonResponse(doc) {
     generation: doc.generation,
     types: [...doc.types],
     evolutionFamilyId: doc.evolutionFamilyId,
+    evolvesFromId: doc.evolvesFromId ?? null,
   }
 }
 

@@ -2,6 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   buildEncounterUpdates,
+  toEncounterResponse,
   validateEncounterInput,
   encounterStatuses,
   shouldWarnDupesClause,
@@ -96,6 +97,51 @@ describe('shouldWarnDupesClause', () => {
       }),
       false,
     )
+  })
+})
+
+describe('toEncounterResponse', () => {
+  it('defaults missing evolutionHistory to an empty array', () => {
+    const response = toEncounterResponse({
+      id: 1,
+      runId: 1,
+      routeId: 2,
+      pokemonId: 1,
+      nickname: 'A',
+      status: encounterStatuses.alive,
+      isShiny: false,
+      level: null,
+      notes: '',
+      caughtAt: 1,
+      created: 1,
+      updated: 1,
+      inactive: null,
+    })
+    assert.deepEqual(response.evolutionHistory, [])
+  })
+
+  it('maps evolutionHistory entries', () => {
+    const response = toEncounterResponse({
+      id: 1,
+      runId: 1,
+      routeId: 2,
+      pokemonId: 2,
+      nickname: 'A',
+      status: encounterStatuses.alive,
+      isShiny: false,
+      level: 16,
+      notes: '',
+      evolutionHistory: [
+        { fromPokemonId: 1, toPokemonId: 2, evolvedAt: 50, level: 16 },
+      ],
+      caughtAt: 1,
+      created: 1,
+      updated: 50,
+      inactive: null,
+    })
+    assert.deepEqual(response.evolutionHistory, [
+      { fromPokemonId: 1, toPokemonId: 2, evolvedAt: 50, level: 16 },
+    ])
   })
 })
 

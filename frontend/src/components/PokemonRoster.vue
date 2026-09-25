@@ -8,19 +8,24 @@ import {
   formatEncounterStatus,
 } from '@/constants/encounterStatuses'
 import { encounterStatusSeverity } from '@/lib/statusUi'
+import { canShowEvolve } from '@/lib/evolution.js'
 
 const props = defineProps({
   encounters: { type: Array, required: true },
   pokemonById: { type: Map, required: true },
+  pokemonOptions: { type: Array, default: () => [] },
   routeById: { type: Map, required: true },
   statusFilter: { type: Number, required: true },
+  randomEvolutions: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['status', 'remove'])
+const emit = defineEmits(['status', 'remove', 'evolve', 'history'])
 
 const rows = computed(() =>
   props.encounters.filter((encounter) => Number(encounter.status) === props.statusFilter),
 )
+
+const evolvableStatuses = new Set([encounterStatuses.alive, encounterStatuses.boxed])
 
 function pokemonName(id) {
   return props.pokemonById.get(Number(id))?.name ?? (id != null ? `#${id}` : '')
@@ -43,6 +48,17 @@ function title(encounter) {
 function notes(encounter) {
   const text = encounter.notes?.trim?.() ?? ''
   return text || ''
+}
+
+function showEvolve(encounter) {
+  if (!evolvableStatuses.has(Number(encounter.status))) return false
+  return canShowEvolve(encounter, props.pokemonOptions, {
+    randomEvolutions: props.randomEvolutions,
+  })
+}
+
+function showHistory(encounter) {
+  return (encounter.evolutionHistory?.length ?? 0) > 0
 }
 </script>
 
@@ -97,6 +113,24 @@ function notes(encounter) {
           class="status-select"
           :data-test="`encounter-status-select-${encounter.id}`"
           @update:model-value="emit('status', encounter, $event)"
+        />
+        <Button
+          v-if="showEvolve(encounter)"
+          label="Evolve"
+          severity="secondary"
+          text
+          size="small"
+          :data-test="`encounter-evolve-${encounter.id}`"
+          @click="emit('evolve', encounter)"
+        />
+        <Button
+          v-if="showHistory(encounter)"
+          label="History"
+          severity="secondary"
+          text
+          size="small"
+          :data-test="`encounter-history-${encounter.id}`"
+          @click="emit('history', encounter)"
         />
         <Button
           label="Remove"
@@ -227,6 +261,7 @@ function notes(encounter) {
   gap: 0.25rem;
   align-items: center;
   margin-top: auto;
+  flex-wrap: wrap;
 }
 
 .status-select {

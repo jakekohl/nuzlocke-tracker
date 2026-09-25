@@ -10,6 +10,16 @@ export const encounterStatuses = {
   skipped: 4,
 }
 
+const evolutionHistoryEntrySchema = new mongoose.Schema(
+  {
+    fromPokemonId: { type: Number, required: true },
+    toPokemonId: { type: Number, required: true },
+    evolvedAt: { type: Number, required: true },
+    level: { type: Number, required: false, default: null },
+  },
+  { _id: false },
+)
+
 const encounterSchema = new mongoose.Schema(
   {
     id: { type: Number, required: true, unique: true },
@@ -22,6 +32,8 @@ const encounterSchema = new mongoose.Schema(
     isShiny: { type: Boolean, required: true, default: false },
     level: { type: Number, required: false },
     notes: { type: String, default: '', trim: true },
+    /** Append-only log of species changes for this individual */
+    evolutionHistory: { type: [evolutionHistoryEntrySchema], default: [] },
     caughtAt: { type: Number, required: true },
     created: { type: Number, required: true },
     updated: { type: Number, required: true },

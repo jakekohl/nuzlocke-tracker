@@ -19,6 +19,7 @@ export const RULE_KEYS = {
   blackoutIsFailure: 'blackoutIsFailure',
   giftPokemonAreEncounters: 'giftPokemonAreEncounters',
   noOutsideTrading: 'noOutsideTrading',
+  randomEvolutions: 'randomEvolutions',
 
   // Difficulty / item restrictions
   noItemsInBattle: 'noItemsInBattle',
@@ -111,6 +112,14 @@ export const RULE_DEFINITIONS = [
     description: 'Only in-game obtains; no trades from other saves or Mystery Gift.',
     category: 'optional',
     default: true,
+  },
+  {
+    key: RULE_KEYS.randomEvolutions,
+    label: 'Random evolutions',
+    description:
+      'Evolution targets are not limited to the species’ normal line (e.g. Universal Randomizer “Randomize Evolutions”).',
+    category: 'optional',
+    default: false,
   },
   {
     key: RULE_KEYS.noItemsInBattle,

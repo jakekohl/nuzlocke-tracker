@@ -101,9 +101,12 @@ for (const row of rows) {
   const name = nameBySpecies.get(row.id)
   if (!name) throw new Error(`No English name for species ${row.id}`)
   const family = chainMinId.get(row.evolution_chain_id)
+  const evolvesFromRaw = row.evolves_from_species_id
+  const evolvesFromId =
+    evolvesFromRaw != null && evolvesFromRaw !== '' ? Number(evolvesFromRaw) : null
   const typesLit = typeList.map((t) => jsString(t)).join(', ')
   lines.push(
-    `  { id: ${row.nid}, name: ${jsString(name)}, generation: ${row.generation_id}, types: [${typesLit}], evolutionFamilyId: ${family} },`,
+    `  { id: ${row.nid}, name: ${jsString(name)}, generation: ${row.generation_id}, types: [${typesLit}], evolutionFamilyId: ${family}, evolvesFromId: ${evolvesFromId} },`,
   )
 }
 

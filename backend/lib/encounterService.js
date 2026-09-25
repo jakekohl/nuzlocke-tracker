@@ -4,6 +4,8 @@ import { getPokemonById } from './pokemonService.js'
 import { getRouteById } from './routeService.js'
 import { getNextId } from './apiHandler.js'
 import { toUnixTimestamp, unixNow } from './timestamps.js'
+import { canEvolveTo } from './evolution.js'
+import { generationForGame } from './games.js'
 
 const VALID_STATUSES = new Set(Object.values(encounterStatuses))
 
@@ -30,6 +32,17 @@ export function shouldWarnDupesClause({ runRules, isShiny, pokemon, ownedFamilyI
     : Boolean(ownedFamilyIds?.has?.(pokemon.evolutionFamilyId))
 }
 
+function toEvolutionHistory(doc) {
+  const raw = doc?.evolutionHistory
+  if (!Array.isArray(raw)) return []
+  return raw.map((entry) => ({
+    fromPokemonId: entry.fromPokemonId,
+    toPokemonId: entry.toPokemonId,
+    evolvedAt: entry.evolvedAt,
+    level: entry.level ?? null,
+  }))
+}
+
 export function toEncounterResponse(doc) {
   if (!doc) return null
   return {
@@ -42,6 +55,7 @@ export function toEncounterResponse(doc) {
     isShiny: Boolean(doc.isShiny),
     level: doc.level ?? null,
     notes: doc.notes ?? '',
+    evolutionHistory: toEvolutionHistory(doc),
     caughtAt: doc.caughtAt,
     created: doc.created,
     updated: doc.updated,
@@ -199,6 +213,7 @@ export async function createEncounter(runId, userId, data) {
     isShiny: Boolean(data.isShiny),
     level: data.level != null && data.level !== '' ? Number(data.level) : undefined,
     notes: data.notes ?? '',
+    evolutionHistory: [],
     caughtAt,
     created: now,
     updated: now,
@@ -307,6 +322,116 @@ export async function inactiveEncounter(runId, encounterId, userId) {
     { new: true, runValidators: true },
   )
   if (!doc) throw httpError(404, 'Encounter not found')
+  return toEncounterResponse(doc)
+}
+
+const EVOLVABLE_STATUSES = new Set([encounterStatuses.alive, encounterStatuses.boxed])
+
+/**
+ * Log an evolution for an encounter: append history and update current pokemonId.
+ */
+export async function evolveEncounter(runId, encounterId, userId, data = {}) {
+  const run = await assertRunOwned(runId, userId)
+  const existing = await Encounter.findOne({
+    id: Number(encounterId),
+    runId: Number(runId),
+    inactive: null,
+  })
+  if (!existing) throw httpError(404, 'Encounter not found')
+
+  if (!EVOLVABLE_STATUSES.has(Number(existing.status))) {
+    throw httpError(400, 'Only alive or boxed Pokémon can evolve')
+  }
+  if (existing.pokemonId == null) {
+    throw httpError(400, 'Encounter has no Pokémon to evolve')
+  }
+
+  const toPokemonId = data.pokemonId
+  if (toPokemonId == null || toPokemonId === '' || !Number.isFinite(Number(toPokemonId))) {
+    throw httpError(400, 'pokemonId is required')
+  }
+
+  let level = null
+  if (data.level !== undefined && data.level !== null && data.level !== '') {
+    level = Number(data.level)
+    if (!Number.isFinite(level) || level < 1 || level > 100) {
+      throw httpError(400, 'level must be between 1 and 100')
+    }
+  }
+
+  const fromPokemonId = Number(existing.pokemonId)
+  const targetId = Number(toPokemonId)
+  assertPokemonExists(targetId)
+
+  const maxGeneration = generationForGame(run.gameId)
+  if (
+    !canEvolveTo(fromPokemonId, targetId, {
+      randomEvolutions: Boolean(run.rules?.randomEvolutions),
+      maxGeneration,
+    })
+  ) {
+    throw httpError(
+      400,
+      run.rules?.randomEvolutions
+        ? 'Invalid evolution target'
+        : 'That species is not a valid next evolution for this Pokémon',
+    )
+  }
+
+  const now = unixNow()
+  const entry = {
+    fromPokemonId,
+    toPokemonId: targetId,
+    evolvedAt: now,
+    level,
+  }
+
+  const setFields = {
+    pokemonId: targetId,
+    updated: now,
+  }
+  if (level != null) setFields.level = level
+
+  const doc = await Encounter.findOneAndUpdate(
+    { id: Number(encounterId), runId: Number(runId), inactive: null },
+    { $set: setFields, $push: { evolutionHistory: entry } },
+    { new: true, runValidators: true },
+  )
+  return toEncounterResponse(doc)
+}
+
+/**
+ * Undo the most recent evolution: pop history and restore previous pokemonId.
+ */
+export async function undoEvolveEncounter(runId, encounterId, userId) {
+  const run = await assertRunOwned(runId, userId)
+  void run
+  const existing = await Encounter.findOne({
+    id: Number(encounterId),
+    runId: Number(runId),
+    inactive: null,
+  })
+  if (!existing) throw httpError(404, 'Encounter not found')
+
+  if (!EVOLVABLE_STATUSES.has(Number(existing.status))) {
+    throw httpError(400, 'Only alive or boxed Pokémon can undo an evolution')
+  }
+
+  const history = Array.isArray(existing.evolutionHistory) ? existing.evolutionHistory : []
+  if (!history.length) {
+    throw httpError(400, 'No evolution to undo')
+  }
+
+  const last = history[history.length - 1]
+  const now = unixNow()
+  const doc = await Encounter.findOneAndUpdate(
+    { id: Number(encounterId), runId: Number(runId), inactive: null },
+    {
+      $set: { pokemonId: last.fromPokemonId, updated: now },
+      $pop: { evolutionHistory: 1 },
+    },
+    { new: true, runValidators: true },
+  )
   return toEncounterResponse(doc)
 }
 

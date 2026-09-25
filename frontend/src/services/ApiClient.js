@@ -155,6 +155,22 @@ export class ApiClient {
     )
   }
 
+  /** POST /api/runs/:id/encounters/:encounterId/evolve */
+  evolveEncounter(runId, encounterId, body) {
+    return this.post(
+      `/api/runs/${encodeURIComponent(runId)}/encounters/${encodeURIComponent(encounterId)}/evolve`,
+      body,
+    )
+  }
+
+  /** POST /api/runs/:id/encounters/:encounterId/evolve/undo */
+  undoEvolveEncounter(runId, encounterId) {
+    return this.post(
+      `/api/runs/${encodeURIComponent(runId)}/encounters/${encodeURIComponent(encounterId)}/evolve/undo`,
+      {},
+    )
+  }
+
   /** DELETE /api/runs/:id/encounters/:encounterId — soft-delete */
   deleteEncounter(runId, encounterId) {
     return this.delete(

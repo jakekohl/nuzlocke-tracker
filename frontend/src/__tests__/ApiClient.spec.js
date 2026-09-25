@@ -116,6 +116,31 @@ describe('ApiClient', () => {
     )
   })
 
+  it('POSTs evolve and undo evolve', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 9, pokemonId: 2 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 9, pokemonId: 1 }), { status: 200 }))
+    const client = new ApiClient('http://localhost:3000')
+
+    await client.evolveEncounter(3, 9, { pokemonId: 2, level: 16 })
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/runs/3/encounters/9/evolve',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ pokemonId: 2, level: 16 }),
+      }),
+    )
+
+    await client.undoEvolveEncounter(3, 9)
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/runs/3/encounters/9/evolve/undo',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({}),
+      }),
+    )
+  })
+
   it('lists games and pokemon with maxGeneration', async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))

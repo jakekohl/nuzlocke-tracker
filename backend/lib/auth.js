@@ -80,7 +80,7 @@ export async function requireUser(req, res) {
   }
 
   clearFailedAuth(req)
-  await touchLastLogin(user.id)
+  await touchLastLogin(user.id, user.lastLogin)
   req.user = user
   return user
 }

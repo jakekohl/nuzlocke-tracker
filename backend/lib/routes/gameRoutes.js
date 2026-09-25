@@ -1,4 +1,5 @@
 import { requireUser } from '../auth.js'
+import { setCatalogCacheHeaders } from '../cacheHeaders.js'
 import { getRouteParam } from '../requestParams.js'
 import { getRouteById, listRoutes } from '../routeService.js'
 
@@ -13,6 +14,7 @@ export async function handleGameRoutes(req, res, segments) {
       region: req.query?.region,
       encounterType: req.query?.encounterType,
     })
+    setCatalogCacheHeaders(res)
     return res.status(200).json(routes)
   }
 
@@ -26,6 +28,7 @@ export async function handleGameRoutes(req, res, segments) {
     if (!route) {
       return res.status(404).json({ message: 'Route not found' })
     }
+    setCatalogCacheHeaders(res)
     return res.status(200).json(route)
   }
 

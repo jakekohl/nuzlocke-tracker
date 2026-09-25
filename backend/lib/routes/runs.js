@@ -1,4 +1,5 @@
 import { requireUser } from '../auth.js'
+import { setCatalogCacheHeaders } from '../cacheHeaders.js'
 import { getRouteParam } from '../requestParams.js'
 import { getRulePresets, getRulesCatalog } from '../runRules.js'
 import {
@@ -36,6 +37,7 @@ export async function handleRuns(req, res, segments) {
   if (segments.length === 2 && segments[1] === 'rules' && req.method === 'GET') {
     const user = await requireUser(req, res)
     if (!user) return
+    setCatalogCacheHeaders(res)
     return res.status(200).json({ rules: getRulesCatalog(), presets: getRulePresets() })
   }
 

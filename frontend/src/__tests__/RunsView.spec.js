@@ -5,6 +5,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import RunsView from '../views/RunsView.vue'
 import { useApiKeyStore } from '../stores/apiKey'
+import { useCatalogStore } from '../stores/catalog'
 import { PrimeVueTestPlugin } from './primeVueTestPlugin'
 
 vi.mock('@/services/ApiClient', () => ({
@@ -36,6 +37,7 @@ describe('RunsView', () => {
   beforeEach(async () => {
     pinia = createPinia()
     setActivePinia(pinia)
+    useCatalogStore().clear()
     router = makeRouter()
     await router.push('/runs')
     await router.isReady()

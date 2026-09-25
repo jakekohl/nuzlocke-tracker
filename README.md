@@ -40,6 +40,8 @@ Agent conventions and testing expectations live in [`AGENTS.md`](AGENTS.md).
 - **Backend:** One Vercel serverless function (`api/index.js`) with `vercel.json` rewrites so all `/api/*` hit that function. MongoDB (Atlas recommended).
 - **Frontend:** Vue 3 SPA.
 
+Cost-conscious hosting notes (caching, function memory, catalog fetch patterns) live in [`AGENTS.md`](AGENTS.md) under **Vercel cost constraints**. On **Hobby**, Vercel soft-caps usage instead of billing overages (no spend alerts). Watch the Usage dashboard for `nuzlocke-tracker` and `nuzlocke-api` if traffic spikes.
+
 ### Auth / creating a user
 
 Users are identified by **email**. Each user gets a personal access key (`nuz_…`). Only the SHA-256 hash is stored.

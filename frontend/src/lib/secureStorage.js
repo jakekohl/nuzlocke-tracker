@@ -1,11 +1,11 @@
 /**
- * Client-side encryption for values persisted in sessionStorage.
+ * Client-side encryption for values persisted in localStorage.
  *
- * Uses AES-GCM with a per-tab random wrapping key. This hides the API key from
- * casual storage inspection and keeps ciphertext separate from the wrap key,
- * but it is not true secret storage: any script running on this origin (including
- * XSS) can still decrypt and use the key. A server-side or OS-level vault is required
- * for that level of protection.
+ * Uses AES-GCM with a random wrapping key stored alongside the ciphertext.
+ * This hides the API key from casual storage inspection and keeps ciphertext
+ * separate from the wrap key, but it is not true secret storage: any script
+ * running on this origin (including XSS) can still decrypt and use the key.
+ * A server-side or OS-level vault is required for that level of protection.
  */
 
 const WRAP_KEY_STORAGE = 'nuzlocke-wrap-key'
@@ -20,14 +20,30 @@ function base64ToBytes(value) {
   return Uint8Array.from(atob(value), (char) => char.charCodeAt(0))
 }
 
+/** Read a key from localStorage, falling back to sessionStorage (pre-persist migration). */
+function readStorage(key) {
+  return localStorage.getItem(key) ?? sessionStorage.getItem(key)
+}
+
+function writeStorage(key, value) {
+  localStorage.setItem(key, value)
+  sessionStorage.removeItem(key)
+}
+
+function removeStorage(key) {
+  localStorage.removeItem(key)
+  sessionStorage.removeItem(key)
+}
+
 async function getOrCreateWrapKey() {
-  let raw = sessionStorage.getItem(WRAP_KEY_STORAGE)
+  let raw = readStorage(WRAP_KEY_STORAGE)
 
   if (!raw) {
     const keyBytes = crypto.getRandomValues(new Uint8Array(32))
     raw = bytesToBase64(keyBytes)
-    sessionStorage.setItem(WRAP_KEY_STORAGE, raw)
   }
+
+  writeStorage(WRAP_KEY_STORAGE, raw)
 
   const keyData = base64ToBytes(raw)
   return crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
@@ -35,7 +51,7 @@ async function getOrCreateWrapKey() {
 
 /**
  * @param {string} plaintext
- * @returns {Promise<string|null>} JSON payload stored in sessionStorage, or null when empty
+ * @returns {Promise<string|null>} JSON payload stored in localStorage, or null when empty
  */
 export async function encryptSecret(plaintext) {
   const trimmed = plaintext.trim()
@@ -73,12 +89,15 @@ export async function decryptSecret(payload) {
 
 export async function loadStoredApiKey() {
   try {
-    const encrypted = sessionStorage.getItem(ENCRYPTED_KEY_STORAGE)
+    const encrypted = readStorage(ENCRYPTED_KEY_STORAGE)
     if (encrypted) {
-      return await decryptSecret(encrypted)
+      const plaintext = await decryptSecret(encrypted)
+      // Promote sessionStorage values into durable localStorage.
+      writeStorage(ENCRYPTED_KEY_STORAGE, encrypted)
+      return plaintext
     }
 
-    const legacy = sessionStorage.getItem(LEGACY_PLAINTEXT_STORAGE)
+    const legacy = readStorage(LEGACY_PLAINTEXT_STORAGE)
     if (legacy) {
       await persistApiKey(legacy)
       return legacy.trim()
@@ -95,16 +114,16 @@ export async function persistApiKey(plaintext) {
     const trimmed = plaintext.trim()
 
     if (!trimmed) {
-      sessionStorage.removeItem(ENCRYPTED_KEY_STORAGE)
-      sessionStorage.removeItem(LEGACY_PLAINTEXT_STORAGE)
-      sessionStorage.removeItem(WRAP_KEY_STORAGE)
+      removeStorage(ENCRYPTED_KEY_STORAGE)
+      removeStorage(LEGACY_PLAINTEXT_STORAGE)
+      removeStorage(WRAP_KEY_STORAGE)
       return
     }
 
     const encrypted = await encryptSecret(trimmed)
-    sessionStorage.setItem(ENCRYPTED_KEY_STORAGE, encrypted)
-    sessionStorage.removeItem(LEGACY_PLAINTEXT_STORAGE)
+    writeStorage(ENCRYPTED_KEY_STORAGE, encrypted)
+    removeStorage(LEGACY_PLAINTEXT_STORAGE)
   } catch {
-    // sessionStorage or Web Crypto unavailable
+    // localStorage or Web Crypto unavailable
   }
 }

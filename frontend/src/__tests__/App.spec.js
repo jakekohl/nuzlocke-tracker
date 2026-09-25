@@ -12,11 +12,13 @@ import { PrimeVueTestPlugin } from './primeVueTestPlugin'
 describe('App', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    vi.stubGlobal('sessionStorage', {
+    const emptyStorage = {
       getItem: vi.fn(() => null),
       setItem: vi.fn(),
       removeItem: vi.fn(),
-    })
+    }
+    vi.stubGlobal('localStorage', emptyStorage)
+    vi.stubGlobal('sessionStorage', emptyStorage)
   })
 
   it('renders the home landing page', async () => {

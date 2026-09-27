@@ -26,7 +26,11 @@
     "hmHelper": false,
     "safariZonePerSection": true,
     "allowTradeEvolutions": true,
-    "slowStart": false
+    "slowStart": false,
+    "missedEncounterRetry": false,
+    "noSharedTypes": false,
+    "sameGenerationOnly": false,
+    "oneRevive": false
   },
   "created": 1785021221,
   "updated": 1785021242,

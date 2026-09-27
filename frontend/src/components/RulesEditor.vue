@@ -71,6 +71,13 @@ const enabledRuleCount = computed(
           @click="emit('preset', 'hardcore')"
         />
         <Button
+          label="Relaxed"
+          severity="secondary"
+          outlined
+          data-test="run-preset-relaxed"
+          @click="emit('preset', 'relaxed')"
+        />
+        <Button
           label="Save"
           data-test="run-button-save-rules"
           :loading="saving"

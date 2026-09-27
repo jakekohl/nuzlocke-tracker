@@ -30,6 +30,7 @@ export function toRunResponse(doc) {
     updated: doc.updated,
     userId: doc.userId,
     gameId: doc.gameId,
+    revivesUsed: doc.revivesUsed ?? 0,
     inactive: doc.inactive ?? null,
   }
 }
@@ -168,6 +169,15 @@ export async function updateRun(id, data) {
     runValidators: true,
   })
   return toRunResponse(run)
+}
+
+export async function incrementRevivesUsed(runId) {
+  const run = await Run.findOneAndUpdate(
+    { id: Number(runId), inactive: null },
+    { $inc: { revivesUsed: 1 } },
+    { new: true },
+  )
+  return run?.revivesUsed ?? 0
 }
 
 export async function inactiveRun(id) {

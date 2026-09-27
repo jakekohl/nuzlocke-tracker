@@ -23,6 +23,8 @@ const runSchema = new mongoose.Schema(
     updated: { type: Number },
     userId: { type: Number, required: true },
     gameId: { type: Number, required: true },
+    /** How many dead Pokémon have been returned to the team or box. */
+    revivesUsed: { type: Number, required: false, default: 0 },
     inactive: { type: Number, required: false },
   },
   { versionKey: false },

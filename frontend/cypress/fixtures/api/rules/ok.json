@@ -146,6 +146,34 @@
           "description": "Core encounter/death rules do not apply until the player can catch Pokémon (and often until after the first rival fight).",
           "category": "softener",
           "default": false
+      },
+      {
+          "key": "missedEncounterRetry",
+          "label": "Missed encounter retry",
+          "description": "A fainted, fled, or forced-out first encounter does not use up the area. You can log another.",
+          "category": "softener",
+          "default": false
+      },
+      {
+          "key": "noSharedTypes",
+          "label": "Type clause",
+          "description": "The living team should not share a type, including secondary types.",
+          "category": "optional",
+          "default": false
+      },
+      {
+          "key": "sameGenerationOnly",
+          "label": "Same generation only",
+          "description": "Catches should be species introduced in this game’s generation.",
+          "category": "optional",
+          "default": false
+      },
+      {
+          "key": "oneRevive",
+          "label": "One revive",
+          "description": "One fainted Pokémon may return to the team. A second revival is called out.",
+          "category": "softener",
+          "default": false
       }
   ],
   "presets": [
@@ -173,7 +201,11 @@
         "hmHelper": false,
         "safariZonePerSection": true,
         "allowTradeEvolutions": true,
-        "slowStart": false
+        "slowStart": false,
+        "missedEncounterRetry": false,
+        "noSharedTypes": false,
+        "sameGenerationOnly": false,
+        "oneRevive": false
       }
     },
     {
@@ -200,7 +232,42 @@
         "hmHelper": false,
         "safariZonePerSection": true,
         "allowTradeEvolutions": true,
-        "slowStart": false
+        "slowStart": false,
+        "missedEncounterRetry": false,
+        "noSharedTypes": false,
+        "sameGenerationOnly": false,
+        "oneRevive": false
+      }
+    },
+    {
+      "id": "relaxed",
+      "label": "Relaxed",
+      "rules": {
+        "firstEncounterOnly": true,
+        "permadeath": true,
+        "nicknameRequired": true,
+        "dupesClause": true,
+        "shinyClause": true,
+        "setMode": false,
+        "levelCap": false,
+        "blackoutIsFailure": true,
+        "giftPokemonAreEncounters": false,
+        "noOutsideTrading": true,
+        "randomEvolutions": false,
+        "noItemsInBattle": false,
+        "noHeldItems": false,
+        "noHealingItems": false,
+        "noMasterBall": false,
+        "noRareCandy": false,
+        "shinyImmuneToPermadeath": false,
+        "hmHelper": false,
+        "safariZonePerSection": true,
+        "allowTradeEvolutions": true,
+        "slowStart": false,
+        "missedEncounterRetry": true,
+        "noSharedTypes": false,
+        "sameGenerationOnly": false,
+        "oneRevive": false
       }
     }
   ]

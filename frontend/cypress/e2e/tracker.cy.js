@@ -235,4 +235,97 @@ describe('Tracker happy paths', () => {
     cy.getDataTest('evolution-timeline').should('contain.text', 'Bulbasaur')
     cy.getDataTest('evolution-timeline').should('contain.text', 'Ivysaur')
   })
+
+  it('logs a shiny on a route that already has an encounter', () => {
+    cy.intercept('POST', /\/api\/runs\/5\/encounters\/?$/, (req) => {
+      expect(req.body.isShiny).to.eq(true)
+      expect(req.body.routeId).to.eq(1)
+      req.reply({
+        statusCode: 201,
+        body: {
+          id: 41,
+          runId: 5,
+          routeId: req.body.routeId,
+          pokemonId: req.body.pokemonId,
+          nickname: req.body.nickname,
+          status: req.body.status ?? 0,
+          isShiny: true,
+          isHmHelper: false,
+          level: null,
+          notes: '',
+          evolutionHistory: [],
+          caughtAt: 1785021274,
+          created: 1785021274,
+          updated: 1785021274,
+          inactive: null,
+          warnings: ['shinyClause'],
+        },
+      })
+    }).as('createShiny')
+
+    cy.signInForTracker()
+    cy.openRunDetailFromList()
+    cy.openEncounterLog('location-log-shiny-1')
+    cy.getDataTest('encounter-shiny').should('be.checked')
+    cy.primeSelectOption('encounter-pokemon-select', 'Charmander')
+    cy.typeDataTest('encounter-nickname-input', 'Spark')
+    cy.getDataTest('encounter-warning-shinyClause').should('be.visible')
+    cy.clickDataTest('encounter-submit')
+    cy.wait('@createShiny')
+    cy.waitForEncounterDialogClosed()
+    cy.ensureDataTestVisible('encounter-row-1').should('contain.text', 'Bulba')
+    cy.ensureDataTestVisible('encounter-row-41').should('contain.text', 'Spark')
+    cy.getDataTest('encounter-shiny-tag-41')
+      .should('be.visible')
+      .and('have.css', 'background-color', 'rgb(255, 225, 74)')
+    cy.getDataTest('location-log-shiny-1')
+      .should('be.visible')
+      .and('have.css', 'background-color', 'rgb(255, 225, 74)')
+    cy.openPartyFilter('run-tab-team')
+    cy.getDataTest('roster-list').should('contain.text', 'Spark')
+  })
+
+  it('keeps a missed area open when missed encounter retry is on', () => {
+    cy.fixture('api/runs/ok_5.json').then((run) => {
+      run.rules.missedEncounterRetry = true
+      cy.intercept('GET', /\/api\/runs\/5\/?(\?.*)?$/, { body: run }).as('getRun')
+      cy.intercept('POST', /\/api\/runs\/5\/encounters\/?$/, {
+        statusCode: 201,
+        body: {
+          id: 42,
+          runId: 5,
+          routeId: 2,
+          pokemonId: null,
+          nickname: '',
+          status: 3,
+          isShiny: false,
+          isHmHelper: false,
+          level: null,
+          notes: '',
+          caughtAt: 1785021274,
+          created: 1785021274,
+          updated: 1785021274,
+          inactive: null,
+          warnings: [],
+        },
+      }).as('missEncounter')
+
+      cy.signInForTracker()
+      cy.openRunDetailFromList()
+      cy.openEncounterLog('location-log-2')
+      cy.ensureDataTestVisible('encounter-outcome-select').click()
+      cy.contains('.p-select-option', 'Missed').scrollIntoView().should('be.visible').click()
+      cy.clickDataTest('encounter-submit')
+      cy.wait('@missEncounter')
+      cy.waitForEncounterDialogClosed()
+      cy.getDataTest('location-log-2').should('exist')
+    })
+  })
+
+  it('shows safari sections instead of the parent zone', () => {
+    cy.signInForTracker()
+    cy.openRunDetailFromList()
+    cy.get('[data-test=location-row-35]').should('not.exist')
+    cy.get('[data-test=location-row-36]').should('exist')
+  })
 })

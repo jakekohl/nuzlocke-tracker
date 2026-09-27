@@ -30,6 +30,8 @@ const encounterSchema = new mongoose.Schema(
     nickname: { type: String, default: '', trim: true },
     status: { type: Number, required: true },
     isShiny: { type: Boolean, required: true, default: false },
+    /** Extra catch for field moves. Does not occupy the route. */
+    isHmHelper: { type: Boolean, required: false, default: false },
     level: { type: Number, required: false },
     notes: { type: String, default: '', trim: true },
     /** Append-only log of species changes for this individual */

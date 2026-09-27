@@ -8,7 +8,8 @@ import { formatGame, generationForGame } from '@/constants/games'
 import { formatRunStatus, runStatusOptions, runStatuses } from '@/constants/runStatuses'
 import { encounterStatuses } from '@/constants/encounterStatuses'
 import { formatUnixDate, todayIsoDate } from '@/lib/dates'
-import { shouldWarnDupes } from '@/lib/dupes'
+import { encounterOccupiesRoute, collectFormWarnings, collectStatusWarnings, formatWarningCodes, speciesHintTags } from '@/lib/ruleWarnings'
+import { filterChecklistRoutes } from '@/lib/locations'
 import { runStatusSeverity } from '@/lib/statusUi'
 import RunStatsStrip from '@/components/RunStatsStrip.vue'
 import LocationChecklist from '@/components/LocationChecklist.vue'
@@ -89,13 +90,30 @@ const routeById = computed(() => new Map(routeOptions.value.map((r) => [r.id, r]
 const encountersByRouteId = computed(() => {
   const map = new Map()
   for (const encounter of encounters.value) {
-    map.set(encounter.routeId, encounter)
+    const list = map.get(encounter.routeId) ?? []
+    list.push(encounter)
+    map.set(encounter.routeId, list)
   }
   return map
 })
 
+const occupiedRouteIds = computed(() => {
+  const ids = new Set()
+  for (const encounter of encounters.value) {
+    if (encounterOccupiesRoute(encounter, run.value?.rules)) ids.add(encounter.routeId)
+  }
+  return ids
+})
+
+const countedLocations = computed(() =>
+  filterChecklistRoutes(routeOptions.value, {
+    rules: run.value?.rules,
+    showOptionalGifts: false,
+  }),
+)
+
 const remainingLocations = computed(
-  () => routeOptions.value.filter((area) => !encountersByRouteId.value.has(area.id)).length,
+  () => countedLocations.value.filter((area) => !occupiedRouteIds.value.has(area.id)).length,
 )
 const aliveCount = computed(
   () => encounters.value.filter((e) => e.status === encounterStatuses.alive).length,
@@ -113,15 +131,40 @@ const missedCount = computed(
     ).length,
 )
 
-const dupesWarning = computed(() => {
+const formWarningCodes = computed(() => {
   const pokemon = pokemonById.value.get(Number(encounterForm.value.pokemonId))
-  return shouldWarnDupes({
+  return collectFormWarnings({
     rules: run.value?.rules,
-    isShiny: encounterForm.value.isShiny,
     pokemon,
+    isShiny: encounterForm.value.isShiny,
+    isHmHelper: encounterForm.value.isHmHelper,
+    status: encounterForm.value.status,
     encounters: encounters.value,
     pokemonById: pokemonById.value,
+    gameGeneration: generationForGame(run.value?.gameId),
+    routeOccupied: loggingRoute.value
+      ? occupiedRouteIds.value.has(loggingRoute.value.id)
+      : false,
+    otherHelperCount: encounters.value.filter((row) => row.isHmHelper).length,
   })
+})
+
+const dupesWarning = computed(() => formWarningCodes.value.includes('dupesClause'))
+
+const speciesHints = computed(() => {
+  const hints = {}
+  const rules = run.value?.rules
+  if (!rules) return hints
+  for (const pokemon of pokemonOptions.value) {
+    const tags = speciesHintTags(pokemon, {
+      rules,
+      encounters: encounters.value,
+      pokemonById: pokemonById.value,
+      gameGeneration: generationForGame(run.value?.gameId),
+    })
+    if (tags.length) hints[pokemon.id] = tags.join(' · ')
+  }
+  return hints
 })
 
 function blankEncounterForm() {
@@ -130,6 +173,7 @@ function blankEncounterForm() {
     nickname: '',
     status: encounterStatuses.alive,
     isShiny: false,
+    isHmHelper: false,
     level: '',
     notes: '',
   }
@@ -355,6 +399,15 @@ function applyPreset(id) {
       blackoutIsFailure: true,
     }
   }
+  if (id === 'relaxed') {
+    editRules.value = {
+      ...editRules.value,
+      missedEncounterRetry: true,
+      giftPokemonAreEncounters: false,
+      dupesClause: true,
+      shinyClause: true,
+    }
+  }
 }
 
 async function archiveRun() {
@@ -379,10 +432,10 @@ async function archiveRun() {
   }
 }
 
-function openEncounterDialog(area) {
+function openEncounterDialog(area, { isShiny = false, isHmHelper = false } = {}) {
   actionError.value = ''
   loggingRoute.value = area
-  encounterForm.value = blankEncounterForm()
+  encounterForm.value = { ...blankEncounterForm(), isShiny, isHmHelper }
   encounterDialogOpen.value = true
   void loadPokemonCatalog()
 }
@@ -396,6 +449,7 @@ async function submitEncounter() {
     status: Number(encounterForm.value.status),
     nickname: encounterForm.value.nickname.trim(),
     isShiny: Boolean(encounterForm.value.isShiny),
+    isHmHelper: Boolean(encounterForm.value.isHmHelper),
     notes: encounterForm.value.notes,
   }
 
@@ -426,9 +480,7 @@ async function submitEncounter() {
     encounters.value = [...encounters.value, saved].sort(
       (a, b) => a.caughtAt - b.caughtAt || a.id - b.id,
     )
-    if (Array.isArray(saved.warnings) && saved.warnings.includes('dupesClause')) {
-      actionError.value = 'Saved with a dupes-clause warning — this line is already on the run.'
-    }
+    noteSavedWarnings(saved)
     encounterDialogOpen.value = false
   } catch (err) {
     actionError.value = err instanceof Error ? err.message : 'Could not log encounter.'
@@ -437,14 +489,41 @@ async function submitEncounter() {
   }
 }
 
+function noteSavedWarnings(saved) {
+  if (saved?.revivesUsed != null && run.value) {
+    run.value = { ...run.value, revivesUsed: saved.revivesUsed }
+  }
+  const message = formatWarningCodes(saved?.warnings)
+  if (message) actionError.value = message
+}
+
 async function setEncounterStatus(encounter, status) {
-  actionError.value = ''
+  const preview = collectStatusWarnings({
+    rules: run.value?.rules,
+    encounter,
+    nextStatus: status,
+    encounters: encounters.value,
+    revivesUsed: run.value?.revivesUsed ?? 0,
+  })
+  actionError.value = formatWarningCodes(preview)
   const result = await apiClient.updateEncounter(runId.value, encounter.id, { status: Number(status) })
   if (!result.ok) {
     actionError.value = apiMessage(result, `Could not update encounter (${result.status}).`)
     return
   }
   encounters.value = encounters.value.map((row) => (row.id === result.data.id ? result.data : row))
+  noteSavedWarnings(result.data)
+}
+
+async function saveEncounterNotes(encounter, notes) {
+  actionError.value = ''
+  const result = await apiClient.updateEncounter(runId.value, encounter.id, { notes })
+  if (!result.ok) {
+    actionError.value = apiMessage(result, `Could not save note (${result.status}).`)
+    throw new Error(actionError.value)
+  }
+  encounters.value = encounters.value.map((row) => (row.id === result.data.id ? result.data : row))
+  noteSavedWarnings(result.data)
 }
 
 async function removeEncounter(encounter) {
@@ -701,9 +780,13 @@ watch(activeTab, (tab) => {
       <LocationChecklist
         v-if="activeTab === 'locations'"
         :routes="routeOptions"
+        :rules="run?.rules"
         :encounters-by-route-id="encountersByRouteId"
         :pokemon-by-id="pokemonById"
         @log="openEncounterDialog"
+        @log-shiny="openEncounterDialog($event, { isShiny: true })"
+        @log-helper="openEncounterDialog($event, { isHmHelper: true })"
+        :save-notes="saveEncounterNotes"
         @status="setEncounterStatus"
         @remove="removeEncounter"
       />
@@ -729,6 +812,7 @@ watch(activeTab, (tab) => {
           :route-by-id="routeById"
           :status-filter="partyFilter"
           :random-evolutions="Boolean(run.rules?.randomEvolutions)"
+          :save-notes="saveEncounterNotes"
           @status="setEncounterStatus"
           @remove="removeEncounter"
           @evolve="openEvolveDialog"
@@ -775,6 +859,9 @@ watch(activeTab, (tab) => {
         :saving="addingEncounter"
         :nickname-required="Boolean(run.rules?.nicknameRequired)"
         :dupes-warning="dupesWarning"
+        :hm-helper-enabled="Boolean(run.rules?.hmHelper)"
+        :warning-codes="formWarningCodes"
+        :species-hints="speciesHints"
         @submit="submitEncounter"
       />
 

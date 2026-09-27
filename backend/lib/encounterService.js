@@ -1,11 +1,20 @@
 import Encounter, { encounterStatuses } from '../models/Encounter.js'
-import { getRunById } from './runService.js'
+import { getRunById, incrementRevivesUsed } from './runService.js'
 import { getPokemonById } from './pokemonService.js'
 import { getRouteById } from './routeService.js'
 import { getNextId } from './apiHandler.js'
 import { toUnixTimestamp, unixNow } from './timestamps.js'
 import { canEvolveTo } from './evolution.js'
 import { generationForGame } from './games.js'
+import {
+  collectSpeciesWarnings,
+  collectStatusWarnings,
+  encounterOccupiesRoute,
+  evaluateRouteOccupancy,
+  isReviveTransition,
+  shouldWarnDupesClause,
+  teamTypesFromEncounters,
+} from './ruleWarnings.js'
 
 const VALID_STATUSES = new Set(Object.values(encounterStatuses))
 
@@ -19,18 +28,7 @@ function isSpeciesOptional(status) {
   return status === encounterStatuses.failed || status === encounterStatuses.skipped
 }
 
-/**
- * Dupes clause is a warning, not a hard block.
- * Shinies skip the warning when shinyClause is enabled.
- */
-export function shouldWarnDupesClause({ runRules, isShiny, pokemon, ownedFamilyIds }) {
-  if (!runRules?.dupesClause) return false
-  if (!pokemon?.evolutionFamilyId) return false
-  if (isShiny && runRules.shinyClause) return false
-  return ownedFamilyIds instanceof Set
-    ? ownedFamilyIds.has(pokemon.evolutionFamilyId)
-    : Boolean(ownedFamilyIds?.has?.(pokemon.evolutionFamilyId))
-}
+export { shouldWarnDupesClause }
 
 function toEvolutionHistory(doc) {
   const raw = doc?.evolutionHistory
@@ -53,6 +51,7 @@ export function toEncounterResponse(doc) {
     nickname: doc.nickname ?? '',
     status: doc.status,
     isShiny: Boolean(doc.isShiny),
+    isHmHelper: Boolean(doc.isHmHelper),
     level: doc.level ?? null,
     notes: doc.notes ?? '',
     evolutionHistory: toEvolutionHistory(doc),
@@ -103,6 +102,10 @@ export function validateEncounterInput(data, { partial = false, runRules } = {})
 
   if (data.isShiny !== undefined && typeof data.isShiny !== 'boolean') {
     throw httpError(400, 'isShiny must be a boolean')
+  }
+
+  if (data.isHmHelper !== undefined && typeof data.isHmHelper !== 'boolean') {
+    throw httpError(400, 'isHmHelper must be a boolean')
   }
 
   if (data.level !== undefined && data.level !== null && data.level !== '') {
@@ -162,6 +165,26 @@ export async function getEncounterById(id, { includeInactive = false } = {}) {
   return toEncounterResponse(doc)
 }
 
+function assertHmHelperAllowed(isHmHelper, runRules) {
+  if (isHmHelper && !runRules?.hmHelper) {
+    throw httpError(400, 'HM helper is not enabled for this run')
+  }
+}
+
+async function listActiveEncounters(runId) {
+  return Encounter.find({ runId: Number(runId), inactive: null }).lean()
+}
+
+function speciesMapFor(encounters) {
+  const map = new Map()
+  for (const row of encounters) {
+    if (row.pokemonId == null) continue
+    const species = getPokemonById(row.pokemonId)
+    if (species) map.set(species.id, species)
+  }
+  return map
+}
+
 export async function createEncounter(runId, userId, data) {
   const run = await assertRunOwned(runId, userId)
   validateEncounterInput(data, { runRules: run.rules })
@@ -171,33 +194,38 @@ export async function createEncounter(runId, userId, data) {
     isSpeciesOptional(status) && (data.pokemonId == null || data.pokemonId === '')
       ? null
       : Number(data.pokemonId)
+  const isHmHelper = Boolean(data.isHmHelper)
+  assertHmHelperAllowed(isHmHelper, run.rules)
 
   await assertRouteForGame(data.routeId, run.gameId)
   const pokemon = pokemonId != null ? await assertPokemonExists(pokemonId) : null
 
-  if (run.rules?.firstEncounterOnly) {
-    const existing = await Encounter.findOne({
-      runId: Number(runId),
-      routeId: Number(data.routeId),
-      inactive: null,
-    }).lean()
-    if (existing) {
-      throw httpError(409, 'This run already has an encounter for that route')
-    }
+  const active = await listActiveEncounters(runId)
+  const othersOnRoute = active.filter((row) => Number(row.routeId) === Number(data.routeId))
+  const otherHelperCount = active.filter((row) => row.isHmHelper).length
+  const occupancy = evaluateRouteOccupancy({
+    rules: run.rules,
+    incoming: { status, isShiny: Boolean(data.isShiny), isHmHelper },
+    othersOnRoute,
+    otherHelperCount,
+  })
+  if (occupancy.blocked) {
+    throw httpError(409, 'This run already has an encounter for that route')
   }
 
   const ownedFamilyIds = await collectOwnedFamilyIds(runId)
-  const warnings = []
-  if (
-    shouldWarnDupesClause({
-      runRules: run.rules,
-      isShiny: Boolean(data.isShiny),
+  const teamTypes = teamTypesFromEncounters(active, speciesMapFor(active))
+  const warnings = [
+    ...occupancy.warnings,
+    ...collectSpeciesWarnings({
+      rules: run.rules,
       pokemon,
+      isShiny: Boolean(data.isShiny),
       ownedFamilyIds,
-    })
-  ) {
-    warnings.push('dupesClause')
-  }
+      teamTypes,
+      gameGeneration: generationForGame(run.gameId),
+    }),
+  ]
 
   const now = unixNow()
   const caughtAt = data.caughtAt != null ? toUnixTimestamp(data.caughtAt) : now
@@ -211,6 +239,7 @@ export async function createEncounter(runId, userId, data) {
     nickname: data.nickname?.trim?.() ?? '',
     status,
     isShiny: Boolean(data.isShiny),
+    isHmHelper,
     level: data.level != null && data.level !== '' ? Number(data.level) : undefined,
     notes: data.notes ?? '',
     evolutionHistory: [],
@@ -220,7 +249,7 @@ export async function createEncounter(runId, userId, data) {
     inactive: undefined,
   })
 
-  return { ...toEncounterResponse(doc), warnings }
+  return { ...toEncounterResponse(doc), warnings: [...new Set(warnings)] }
 }
 
 export async function collectOwnedFamilyIds(runId, { excludeEncounterId } = {}) {
@@ -250,6 +279,7 @@ export function buildEncounterUpdates(data, { runRules } = {}, now = unixNow()) 
   if (data.nickname !== undefined) updates.nickname = String(data.nickname).trim()
   if (data.status !== undefined) updates.status = Number(data.status)
   if (data.isShiny !== undefined) updates.isShiny = Boolean(data.isShiny)
+  if (data.isHmHelper !== undefined) updates.isHmHelper = Boolean(data.isHmHelper)
   if (data.level !== undefined) {
     updates.level = data.level === null || data.level === '' ? null : Number(data.level)
   }
@@ -272,6 +302,10 @@ export async function updateEncounter(runId, encounterId, userId, data) {
   const mergedNickname = data.nickname !== undefined ? data.nickname : existing.nickname
   const mergedPokemonId =
     data.pokemonId !== undefined ? data.pokemonId : existing.pokemonId
+  const mergedShiny = data.isShiny !== undefined ? Boolean(data.isShiny) : Boolean(existing.isShiny)
+  const mergedHelper =
+    data.isHmHelper !== undefined ? Boolean(data.isHmHelper) : Boolean(existing.isHmHelper)
+  if (data.isHmHelper !== undefined) assertHmHelperAllowed(mergedHelper, run.rules)
 
   validateEncounterInput(
     {
@@ -280,29 +314,78 @@ export async function updateEncounter(runId, encounterId, userId, data) {
       nickname: mergedNickname,
       pokemonId: mergedPokemonId,
       isShiny: data.isShiny,
+      isHmHelper: data.isHmHelper,
       level: data.level,
       caughtAt: data.caughtAt,
     },
     { runRules: run.rules },
   )
 
+  const active = await listActiveEncounters(runId)
+  const routeId = Number(data.routeId ?? existing.routeId)
   if (data.routeId !== undefined) {
     await assertRouteForGame(data.routeId, run.gameId)
-    if (run.rules?.firstEncounterOnly && Number(data.routeId) !== existing.routeId) {
-      const conflict = await Encounter.findOne({
-        runId: Number(runId),
-        routeId: Number(data.routeId),
-        inactive: null,
-        id: { $ne: existing.id },
-      }).lean()
-      if (conflict) {
-        throw httpError(409, 'This run already has an encounter for that route')
-      }
-    }
+  }
+  const othersOnRoute = active.filter(
+    (row) => row.id !== existing.id && Number(row.routeId) === routeId,
+  )
+  const otherHelperCount = active.filter((row) => row.id !== existing.id && row.isHmHelper).length
+  const occupancy = evaluateRouteOccupancy({
+    rules: run.rules,
+    incoming: { status: mergedStatus, isShiny: mergedShiny, isHmHelper: mergedHelper },
+    othersOnRoute,
+    otherHelperCount,
+    alreadyOccupies:
+      Number(existing.routeId) === routeId && encounterOccupiesRoute(existing, run.rules),
+  })
+  if (occupancy.blocked) {
+    throw httpError(409, 'This run already has an encounter for that route')
   }
 
-  if (data.pokemonId != null && data.pokemonId !== '') {
-    await assertPokemonExists(data.pokemonId)
+  const pokemon =
+    mergedPokemonId != null && mergedPokemonId !== '' ? await assertPokemonExists(mergedPokemonId) : null
+  const warnings = []
+  const occupancyChanged =
+    data.routeId !== undefined ||
+    data.isShiny !== undefined ||
+    data.isHmHelper !== undefined ||
+    (data.status !== undefined &&
+      encounterOccupiesRoute(
+        { status: mergedStatus, isHmHelper: mergedHelper },
+        run.rules,
+      ) !== encounterOccupiesRoute(existing, run.rules))
+  if (occupancyChanged) warnings.push(...occupancy.warnings)
+
+  if (data.pokemonId !== undefined && pokemon && !isSpeciesOptional(mergedStatus)) {
+    const teamTypes = teamTypesFromEncounters(active, speciesMapFor(active), {
+      ignoreEncounterId: existing.id,
+    })
+    warnings.push(
+      ...collectSpeciesWarnings({
+        rules: run.rules,
+        pokemon,
+        isShiny: mergedShiny,
+        ownedFamilyIds: await collectOwnedFamilyIds(runId, { excludeEncounterId: existing.id }),
+        teamTypes,
+        gameGeneration: generationForGame(run.gameId),
+      }),
+    )
+  }
+  if (data.status !== undefined) {
+    warnings.push(
+      ...collectStatusWarnings({
+        rules: run.rules,
+        encounter: existing,
+        nextStatus: mergedStatus,
+        encounters: active,
+        revivesUsed: run.revivesUsed ?? 0,
+      }),
+    )
+  }
+
+  let revivesUsed = null
+  if (run.rules?.oneRevive && isReviveTransition(existing.status, mergedStatus)) {
+    revivesUsed = await incrementRevivesUsed(run.id)
   }
 
   const updates = buildEncounterUpdates(data, { runRules: run.rules })
@@ -311,7 +394,11 @@ export async function updateEncounter(runId, encounterId, userId, data) {
     updates,
     { new: true, runValidators: true },
   )
-  return toEncounterResponse(doc)
+  return {
+    ...toEncounterResponse(doc),
+    warnings: [...new Set(warnings)],
+    ...(revivesUsed != null ? { revivesUsed } : {}),
+  }
 }
 
 export async function inactiveEncounter(runId, encounterId, userId) {

@@ -19,6 +19,10 @@ describe('defaultRunRules', () => {
     assert.equal(rules.setMode, false)
     assert.equal(rules.levelCap, false)
     assert.equal(rules.randomEvolutions, false)
+    assert.equal(rules.missedEncounterRetry, false)
+    assert.equal(rules.noSharedTypes, false)
+    assert.equal(rules.sameGenerationOnly, false)
+    assert.equal(rules.oneRevive, false)
   })
 })
 
@@ -59,6 +63,11 @@ describe('getRulePresets', () => {
     assert.equal(hardcore.rules.setMode, true)
     assert.equal(hardcore.rules.noItemsInBattle, true)
     assert.equal(hardcore.rules.permadeath, true)
+    const relaxed = presets.find((p) => p.id === 'relaxed')
+    assert.equal(relaxed.rules.missedEncounterRetry, true)
+    assert.equal(relaxed.rules.giftPokemonAreEncounters, false)
+    assert.equal(relaxed.rules.dupesClause, true)
+    assert.equal(relaxed.rules.shinyClause, true)
   })
 })
 

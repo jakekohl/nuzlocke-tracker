@@ -34,6 +34,12 @@ export const RULE_KEYS = {
   safariZonePerSection: 'safariZonePerSection',
   allowTradeEvolutions: 'allowTradeEvolutions',
   slowStart: 'slowStart',
+
+  // Tracker-enforced guidance (warnings, plus a few encounter exceptions)
+  missedEncounterRetry: 'missedEncounterRetry',
+  noSharedTypes: 'noSharedTypes',
+  sameGenerationOnly: 'sameGenerationOnly',
+  oneRevive: 'oneRevive',
 }
 
 /** Human-readable catalog for clients (create-run UI, docs). */
@@ -193,6 +199,35 @@ export const RULE_DEFINITIONS = [
     category: 'softener',
     default: false,
   },
+  {
+    key: RULE_KEYS.missedEncounterRetry,
+    label: 'Missed encounter retry',
+    description:
+      'A fainted, fled, or forced-out first encounter does not use up the area. You can log another.',
+    category: 'softener',
+    default: false,
+  },
+  {
+    key: RULE_KEYS.noSharedTypes,
+    label: 'Type clause',
+    description: 'The living team should not share a type, including secondary types.',
+    category: 'optional',
+    default: false,
+  },
+  {
+    key: RULE_KEYS.sameGenerationOnly,
+    label: 'Same generation only',
+    description: 'Catches should be species introduced in this game’s generation.',
+    category: 'optional',
+    default: false,
+  },
+  {
+    key: RULE_KEYS.oneRevive,
+    label: 'One revive',
+    description: 'One fainted Pokémon may return to the team. A second revival is called out.',
+    category: 'softener',
+    default: false,
+  },
 ]
 
 export function defaultRunRules() {
@@ -251,6 +286,17 @@ export function getRulePresets() {
         noItemsInBattle: true,
         noHeldItems: true,
         blackoutIsFailure: true,
+      },
+    },
+    {
+      id: 'relaxed',
+      label: 'Relaxed',
+      rules: {
+        ...standard,
+        missedEncounterRetry: true,
+        giftPokemonAreEncounters: false,
+        dupesClause: true,
+        shinyClause: true,
       },
     },
   ]

@@ -2,15 +2,19 @@
 import { computed } from 'vue'
 import PokemonPicker from '@/components/PokemonPicker.vue'
 import { encounterStatuses, logOutcomeOptions } from '@/constants/encounterStatuses'
+import { RULE_WARNING_MESSAGES } from '@/lib/ruleWarnings'
 
 const props = defineProps({
   visible: { type: Boolean, required: true },
   route: { type: Object, default: null },
   form: { type: Object, required: true },
   pokemonOptions: { type: Array, required: true },
+  speciesHints: { type: Object, default: () => ({}) },
   saving: { type: Boolean, default: false },
   nicknameRequired: { type: Boolean, default: false },
   dupesWarning: { type: Boolean, default: false },
+  hmHelperEnabled: { type: Boolean, default: false },
+  warningCodes: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update:visible', 'submit'])
@@ -26,6 +30,13 @@ const speciesRequired = computed(
   () =>
     props.form.status !== encounterStatuses.failed &&
     props.form.status !== encounterStatuses.skipped,
+)
+
+const extraWarnings = computed(() =>
+  props.warningCodes
+    .filter((code) => code !== 'dupesClause')
+    .map((code) => ({ code, message: RULE_WARNING_MESSAGES[code] }))
+    .filter((item) => item.message),
 )
 </script>
 
@@ -57,6 +68,7 @@ const speciesRequired = computed(
       <PokemonPicker
         v-model="form.pokemonId"
         :options="pokemonOptions"
+        :hints="speciesHints"
         :required="speciesRequired"
       />
 
@@ -72,6 +84,11 @@ const speciesRequired = computed(
       <label class="field-label field-label--inline">
         <input v-model="form.isShiny" type="checkbox" data-test="encounter-shiny" />
         Shiny
+      </label>
+
+      <label v-if="hmHelperEnabled" class="field-label field-label--inline">
+        <input v-model="form.isHmHelper" type="checkbox" data-test="encounter-hm-helper" />
+        HM helper
       </label>
 
       <label class="field-label" for="enc-level">Level (optional)</label>
@@ -100,6 +117,16 @@ const speciesRequired = computed(
         data-test="encounter-dupes-warning"
       >
         Dupes clause: you already have this evolution line. You can still save if you meant to.
+      </Message>
+      <Message
+        v-for="warning in extraWarnings"
+        :key="warning.code"
+        severity="warn"
+        :closable="false"
+        class="dupes-warning"
+        :data-test="`encounter-warning-${warning.code}`"
+      >
+        {{ warning.message }}
       </Message>
 
       <div class="modal__actions">

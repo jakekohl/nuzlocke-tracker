@@ -9,6 +9,7 @@ import {
 } from '@/constants/encounterStatuses'
 import { encounterStatusSeverity } from '@/lib/statusUi'
 import { canShowEvolve } from '@/lib/evolution.js'
+import EncounterNotesButton from '@/components/EncounterNotesButton.vue'
 
 const props = defineProps({
   encounters: { type: Array, required: true },
@@ -17,6 +18,7 @@ const props = defineProps({
   routeById: { type: Map, required: true },
   statusFilter: { type: Number, required: true },
   randomEvolutions: { type: Boolean, default: false },
+  saveNotes: { type: Function, required: true },
 })
 
 const emit = defineEmits(['status', 'remove', 'evolve', 'history'])
@@ -98,10 +100,6 @@ function showHistory(encounter) {
             :updated="encounter.updated"
             :status="encounter.status"
           />
-          <p v-if="notes(encounter)" class="card__notes" data-test="encounter-notes">
-            <span class="card__notes-label">Notes</span>
-            {{ notes(encounter) }}
-          </p>
         </div>
       </div>
       <div class="card__actions">
@@ -132,6 +130,10 @@ function showHistory(encounter) {
           :data-test="`encounter-history-${encounter.id}`"
           @click="emit('history', encounter)"
         />
+        <EncounterNotesButton
+          :notes="notes(encounter)"
+          :save="(text) => props.saveNotes(encounter, text)"
+        />
         <Button
           label="Remove"
           severity="secondary"
@@ -152,6 +154,7 @@ function showHistory(encounter) {
   padding: 0;
   display: grid;
   grid-template-columns: 1fr;
+  align-items: stretch;
   gap: 0.65rem;
 }
 
@@ -171,6 +174,8 @@ function showHistory(encounter) {
   flex-direction: column;
   gap: 0.55rem;
   padding: 0.65rem 0.75rem;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   transition:
     transform var(--motion-fast) var(--ease-out),
@@ -224,31 +229,6 @@ function showHistory(encounter) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.card__notes {
-  margin: 0.2rem 0 0;
-  padding: 0.35rem 0.45rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary-soft);
-  border: 1px solid rgb(31 122 92 / 14%);
-  color: var(--color-ink);
-  font-size: 0.78rem;
-  line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.card__notes-label {
-  display: block;
-  margin-bottom: 0.1rem;
-  font-weight: 700;
-  font-size: 0.7rem;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--color-primary-strong);
 }
 
 .muted {

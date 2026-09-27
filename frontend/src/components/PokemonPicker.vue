@@ -5,6 +5,7 @@ defineProps({
   options: { type: Array, required: true },
   disabled: { type: Boolean, default: false },
   required: { type: Boolean, default: false },
+  hints: { type: Object, default: () => ({}) },
 })
 
 const model = defineModel({ type: [Number, String, null], default: '' })
@@ -36,6 +37,7 @@ const model = defineModel({ type: [Number, String, null], default: '' })
       <span class="pokemon-picker__option">
         <PokemonSprite :pokemon-id="option.id" :name="option.name" size="sm" />
         <span>#{{ option.id }} {{ option.name }}</span>
+        <span v-if="hints[option.id]" class="pokemon-picker__hint">{{ hints[option.id] }}</span>
       </span>
     </template>
   </Select>
@@ -51,5 +53,10 @@ const model = defineModel({ type: [Number, String, null], default: '' })
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.pokemon-picker__hint {
+  color: var(--color-muted);
+  font-size: 0.75rem;
 }
 </style>

@@ -1,0 +1,36 @@
+name: Dependabot rebase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: dependabot-rebase
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rebase-next:
+    runs-on: ubuntu-latest
+    steps:
+      # Rebase one PR at a time so each merge to main triggers the next rebase.
+      # Dependabot ignores commands from github-actions[bot], so a user token is required.
+      - name: Ask Dependabot to rebase the oldest out-of-date PR
+        env:
+          GH_TOKEN: ${{ secrets.DEPENDABOT_AUTOMERGE_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          for pr in $(gh pr list --repo "$REPO" --author app/dependabot --state open \
+              --json number,createdAt --jq 'sort_by(.createdAt) | .[].number'); do
+            branch=$(gh pr view "$pr" --repo "$REPO" --json headRefName --jq .headRefName)
+            behind=$(gh api "repos/$REPO/compare/main...$branch" --jq .behind_by)
+            if [ "${behind:-0}" -gt 0 ]; then
+              echo "Requesting rebase of #$pr ($branch is $behind commits behind main)"
+              gh pr comment "$pr" --repo "$REPO" --body "@dependabot rebase"
+              exit 0
+            fi
+          done
+          echo "No out-of-date Dependabot PRs"
